@@ -25,6 +25,7 @@ render_header('Admin', 'admin');
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <button type="submit" class="secondary">Settle sports feed</button>
         </form>
+        <a class="button-link small" href="/provider/admin.php">Manage providers</a>
     </div>
     <div class="stats-grid">
         <article class="stat-card"><h3><?= number_format((int) ($stats['users_total'] ?? 0)) ?></h3><p class="muted">Users</p></article>

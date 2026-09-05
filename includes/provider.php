@@ -15,6 +15,12 @@ function provider_mode(): string
     return (string) (app_config()['provider_mode'] ?? 'demo');
 }
 
+function provider_wants_json(): bool
+{
+    return str_contains(strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json')
+        || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+}
+
 function provider_schema_available(): bool
 {
     if (!db_available()) {
@@ -194,6 +200,9 @@ function provider_admin_snapshot(array $filters = []): array
         'providers' => [],
         'games' => [],
         'logs' => [],
+        'sessions' => [],
+        'transactions' => [],
+        'jackpots' => [],
         'stats' => ['providers' => 0, 'enabled_games' => 0, 'active_sessions' => 0, 'rounds' => 0],
     ];
     if (!provider_schema_available()) {
@@ -219,8 +228,40 @@ function provider_admin_snapshot(array $filters = []): array
         LEFT JOIN providers p ON p.id=l.provider_id
         ORDER BY l.created_at DESC, l.id DESC
         LIMIT 40")->fetchAll();
+    $sessions = db()->query("SELECT gs.public_id, gs.status, gs.expires_at, gs.last_activity_at,
+            u.username, g.title AS game_title, p.name AS provider_name
+        FROM game_sessions gs
+        JOIN users u ON u.id=gs.user_id
+        JOIN games g ON g.id=gs.game_id
+        JOIN providers p ON p.id=gs.provider_id
+        ORDER BY gs.created_at DESC
+        LIMIT 30")->fetchAll();
+    $transactions = db()->query("SELECT pt.external_transaction_id, pt.transaction_type, pt.amount,
+            pt.status, pt.created_at, u.username, g.title AS game_title, p.name AS provider_name
+        FROM provider_transactions pt
+        JOIN users u ON u.id=pt.user_id
+        JOIN game_sessions gs ON gs.id=pt.game_session_id
+        JOIN games g ON g.id=gs.game_id
+        JOIN providers p ON p.id=pt.provider_id
+        ORDER BY pt.created_at DESC, pt.id DESC
+        LIMIT 30")->fetchAll();
+    $jackpots = db()->query("SELECT j.name, j.amount, j.is_active, j.updated_at,
+            p.name AS provider_name, g.title AS game_title
+        FROM jackpots j
+        LEFT JOIN providers p ON p.id=j.provider_id
+        LEFT JOIN games g ON g.id=j.game_id
+        ORDER BY j.amount DESC")->fetchAll();
 
-    return ['ready' => true, 'providers' => $providers, 'games' => $games, 'logs' => $logs, 'stats' => $stats];
+    return [
+        'ready' => true,
+        'providers' => $providers,
+        'games' => $games,
+        'logs' => $logs,
+        'sessions' => $sessions,
+        'transactions' => $transactions,
+        'jackpots' => $jackpots,
+        'stats' => $stats,
+    ];
 }
 
 function provider_set_enabled(int $providerId, bool $enabled): void

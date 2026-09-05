@@ -61,7 +61,7 @@ render_header('Casino', 'casino');
 </section>
 <section class="toolbar toolbar-tabs">
     <a class="mini-tab active" href="/index.php">Featured lobby</a>
-    <a class="mini-tab" href="/lobby.php">Game routes</a>
+    <a class="mini-tab" href="/lobby.php">Provider catalog</a>
     <a class="mini-tab" href="/sports.php">Sports board</a>
     <a class="mini-tab" href="/results.php">Results feed</a>
     <a class="mini-tab" href="/jackpots.php">Jackpots</a>

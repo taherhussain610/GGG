@@ -52,23 +52,34 @@ async function refreshDashboardWidgets() {
 
 function setupGameFilters() {
     const buttons = document.querySelectorAll('[data-filter]');
+    const providerButtons = document.querySelectorAll('[data-provider-filter]');
     const cards = document.querySelectorAll('[data-category]');
     const search = document.querySelector('[data-game-search]');
 
     const applyFilters = () => {
         const active = document.querySelector('[data-filter].active')?.dataset.filter || 'all';
+        const activeProvider = document.querySelector('[data-provider-filter].active')?.dataset.providerFilter || 'all';
         const term = (search?.value || '').trim().toLowerCase();
         cards.forEach((card) => {
             const matchesCategory = active === 'all' || card.dataset.category === active;
+            const matchesProvider = activeProvider === 'all' || card.dataset.provider === activeProvider;
             const text = card.textContent.toLowerCase();
             const matchesSearch = !term || text.includes(term);
-            card.hidden = !(matchesCategory && matchesSearch);
+            card.hidden = !(matchesCategory && matchesProvider && matchesSearch);
         });
     };
 
     buttons.forEach((button) => {
         button.addEventListener('click', () => {
             buttons.forEach((item) => item.classList.remove('active'));
+            button.classList.add('active');
+            applyFilters();
+        });
+    });
+
+    providerButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            providerButtons.forEach((item) => item.classList.remove('active'));
             button.classList.add('active');
             applyFilters();
         });

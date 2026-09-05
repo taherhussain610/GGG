@@ -89,6 +89,11 @@ button.secondary { background: #1a2745; color: var(--text); border: 1px solid va
     display: grid;
     gap: 1rem;
 }
+.provider-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
 .grid-3, .promo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-4, .game-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .market-grid, .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -106,6 +111,8 @@ button.secondary { background: #1a2745; color: var(--text); border: 1px solid va
 .filters { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .filters button { background: #16213d; color: var(--text); border: 1px solid var(--line); }
 .filters button.active { border-color: var(--accent); color: var(--accent); }
+.provider-filters { margin-top: 1rem; }
+.provider-filters button.active { border-color: var(--accent-2); color: var(--accent-2); }
 .mini-tab {
     display: inline-flex;
     align-items: center;
@@ -149,12 +156,62 @@ tr:last-child td { border-bottom: 0; }
     font-size: 0.9rem;
 }
 .console-line { color: #8ff7b4; }
+.game-thumbnail, .provider-hero-image {
+    display: block;
+    width: 100%;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+}
+.game-thumbnail { height: 130px; margin-bottom: 1rem; }
+.provider-hero-image { max-height: 320px; margin-bottom: 1rem; }
+.health-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: var(--muted);
+    box-shadow: 0 0 0 4px rgba(147,161,198,0.12);
+}
+.health-healthy { background: var(--success); box-shadow: 0 0 0 4px rgba(47,210,125,0.13); }
+.health-degraded { background: var(--warning); }
+.health-offline, .health-unconfigured { background: var(--danger); }
+.detail-list { display: grid; gap: 0.55rem; margin: 1rem 0; }
+.detail-list div { display: flex; justify-content: space-between; gap: 1rem; }
+.detail-list dt { color: var(--muted); }
+.detail-list dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.detail-list.compact { font-size: 0.88rem; }
+.provider-session { display: grid; grid-template-columns: 1.6fr minmax(280px, 0.7fr); gap: 1rem; }
+.provider-balance { font-size: 2rem; font-weight: 800; color: var(--accent); }
+.provider-play-form, .provider-config-form { display: grid; gap: 0.75rem; }
+.provider-close-form { margin-top: 0.75rem; }
+.sandbox-notice {
+    padding: 0.85rem;
+    border: 1px solid rgba(242,184,75,0.35);
+    border-radius: 12px;
+    background: rgba(242,184,75,0.12);
+    color: var(--warning);
+}
+.inline-actions { display: flex; gap: 0.55rem; flex-wrap: wrap; }
+.provider-admin-card details { margin-top: 1rem; }
+.provider-admin-card summary { cursor: pointer; color: var(--accent); }
+.provider-config-form { margin-top: 0.8rem; }
+.catalog-filters {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto auto;
+    gap: 0.75rem;
+    align-items: end;
+    margin-bottom: 1rem;
+}
+.secondary-link { background: #1a2745; color: var(--text); border: 1px solid var(--line); }
+code { color: #8feaff; overflow-wrap: anywhere; }
 @media (max-width: 980px) {
-    .hero, .grid-4, .game-grid, .stats-grid, .market-grid, .results-grid, .promo-grid, .profile-grid { grid-template-columns: 1fr 1fr; }
+    .hero, .grid-4, .game-grid, .stats-grid, .market-grid, .results-grid, .promo-grid, .profile-grid, .provider-grid { grid-template-columns: 1fr 1fr; }
+    .provider-session { grid-template-columns: 1fr; }
+    .catalog-filters { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 720px) {
     .nav-links { display: none; }
-    .hero, .grid-3, .grid-4, .game-grid, .stats-grid, .market-grid, .results-grid, .promo-grid, .profile-grid { grid-template-columns: 1fr; }
+    .hero, .grid-3, .grid-4, .game-grid, .stats-grid, .market-grid, .results-grid, .promo-grid, .profile-grid, .provider-grid, .catalog-filters { grid-template-columns: 1fr; }
     .topbar { align-items: flex-start; flex-direction: column; }
     .page-shell { padding-bottom: 6rem; }
     .mobile-nav {

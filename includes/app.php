@@ -588,11 +588,19 @@ function jackpot_totals(): array
     $row = db()->query('SELECT COALESCE(SUM(bet),0) AS turnover FROM game_transactions')->fetch();
     $turnover = (int) ($row['turnover'] ?? 0);
 
-    return [
+    $jackpots = [
         'Mega Jackpot' => 125000 + (int) round($turnover * 0.08),
         'Blackjack Rush' => 48000 + (int) round($turnover * 0.03),
         'Roulette Royale' => 36000 + (int) round($turnover * 0.025),
     ];
+    if (function_exists('provider_schema_available') && provider_schema_available()) {
+        $providerJackpots = db()->query('SELECT name, amount FROM jackpots WHERE is_active=1 ORDER BY amount DESC')->fetchAll();
+        foreach ($providerJackpots as $providerJackpot) {
+            $jackpots[(string) $providerJackpot['name']] = (int) $providerJackpot['amount'];
+        }
+    }
+
+    return $jackpots;
 }
 
 function dashboard_snapshot(): array

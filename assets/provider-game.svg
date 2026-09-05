@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-labelledby="title description">
+  <title id="title">Neon Royale demo game</title>
+  <desc id="description">Abstract neon rings on a dark background</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111a2f"/>
+      <stop offset="1" stop-color="#09111f"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#57d5ff"/>
+      <stop offset="1" stop-color="#ff61d6"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" rx="36" fill="url(#background)"/>
+  <circle cx="400" cy="225" r="142" fill="none" stroke="url(#neon)" stroke-width="24" opacity=".9"/>
+  <circle cx="400" cy="225" r="82" fill="none" stroke="#2fd27d" stroke-width="12" opacity=".75"/>
+  <path d="M145 332C260 155 515 123 665 318" fill="none" stroke="#f2b84b" stroke-width="10" stroke-linecap="round" opacity=".65"/>
+  <text x="400" y="238" fill="#eef3ff" font-family="Arial,sans-serif" font-size="34" font-weight="700" text-anchor="middle">DEMO</text>
+</svg>
