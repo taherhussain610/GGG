@@ -192,11 +192,19 @@ function game_definitions(): array
     ];
 }
 
-function random_card(): string
+function deck_of_cards(): array
 {
     $ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
     $suits = ['♠', '♥', '♦', '♣'];
-    return $ranks[array_rand($ranks)] . $suits[array_rand($suits)];
+    $deck = [];
+    foreach ($ranks as $rank) {
+        foreach ($suits as $suit) {
+            $deck[] = $rank . $suit;
+        }
+    }
+
+    shuffle($deck);
+    return $deck;
 }
 
 function poker_hand_rank(array $cards): array
@@ -319,10 +327,7 @@ function resolve_dice(int $bet, string $selection): array
 
 function resolve_poker(int $bet): array
 {
-    $cards = [];
-    for ($i = 0; $i < 5; $i++) {
-        $cards[] = random_card();
-    }
+    $cards = array_slice(deck_of_cards(), 0, 5);
     $rank = poker_hand_rank($cards);
 
     return [
@@ -381,6 +386,9 @@ function settle_sports(): void
     $now = time();
     foreach ($events as $event) {
         $startsAt = strtotime((string) $event['starts_at']);
+        if ($startsAt === false) {
+            continue;
+        }
         if ($startsAt <= $now) {
             $options = $event['draw_odds'] !== null ? ['home', 'draw', 'away'] : ['home', 'away'];
             $winner = $options[array_rand($options)];
@@ -514,14 +522,14 @@ function claim_bonus(int $userId): array
     $pdo = db();
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare('SELECT xp, last_bonus_at FROM users WHERE id = ? FOR UPDATE');
+        $stmt = $pdo->prepare('SELECT xp, last_bonus_at, TIMESTAMPDIFF(SECOND, last_bonus_at, NOW()) AS bonus_age_seconds FROM users WHERE id = ? FOR UPDATE');
         $stmt->execute([$userId]);
         $row = $stmt->fetch();
         if (!$row) {
             throw new RuntimeException('User not found.');
         }
 
-        if (!empty($row['last_bonus_at']) && strtotime((string) $row['last_bonus_at']) > strtotime('-24 hours')) {
+        if ($row['bonus_age_seconds'] !== null && (int) $row['bonus_age_seconds'] < 86400) {
             throw new InvalidArgumentException('Daily bonus already claimed in the last 24 hours.');
         }
 

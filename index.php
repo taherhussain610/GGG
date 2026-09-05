@@ -45,7 +45,7 @@ render_header('Casino', 'casino');
         <div class="stat-card bonus-card">
             <span class="badge">Daily Bonus</span>
             <p>Claim a once-per-day credit boost from your profile or the API.</p>
-            <a href="/profile.php"><button type="button">Open profile</button></a>
+            <a class="button-link" href="/profile.php">Open profile</a>
         </div>
     </div>
 </section>
@@ -94,7 +94,7 @@ render_header('Casino', 'casino');
                 </form>
             <?php else: ?>
                 <p class="muted">Register or log in to place play-money bets.</p>
-                <a href="/register.php"><button type="button">Create account</button></a>
+                <a class="button-link" href="/register.php">Create account</a>
             <?php endif; ?>
         </article>
     <?php endforeach; ?>
