@@ -421,7 +421,7 @@ function settle_sports(): void
                 WHEN draw_odds IS NOT NULL THEN ELT(MOD({$seed}, 3) + 1, 'home', 'draw', 'away')
                 ELSE ELT(MOD({$seed}, 2) + 1, 'home', 'away')
             END
-        WHERE status <> 'finished' AND starts_at <= NOW()");
+        WHERE status <> 'finished' AND starts_at <= DATE_SUB(NOW(), INTERVAL 15 MINUTE)");
     $pdo->exec("UPDATE sports_events
         SET result_summary = CASE winner
             WHEN 'home' THEN CONCAT(home_team, ' won the virtual fixture')
@@ -431,7 +431,7 @@ function settle_sports(): void
         WHERE status = 'finished' AND winner IS NOT NULL AND (result_summary IS NULL OR result_summary = '')");
     $pdo->exec("UPDATE sports_events
         SET status = 'live'
-        WHERE status = 'upcoming' AND starts_at > NOW() AND starts_at <= DATE_ADD(NOW(), INTERVAL 15 MINUTE)");
+        WHERE status = 'upcoming' AND starts_at <= NOW() AND starts_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)");
 
     $pickIds = $pdo->query("SELECT sp.id
         FROM sports_picks sp
@@ -479,10 +479,10 @@ function decorate_sports_event(array $event): array
 {
     $startsAt = strtotime((string) ($event['starts_at'] ?? ''));
     if (($event['status'] ?? '') !== 'finished' && $startsAt !== false) {
-        if ($startsAt <= time()) {
-            $event['status'] = 'finished';
-        } elseif ($startsAt <= time() + 900) {
+        if ($startsAt <= time() && $startsAt > time() - 900) {
             $event['status'] = 'live';
+        } elseif ($startsAt <= time() - 900) {
+            $event['status'] = 'finished';
         } else {
             $event['status'] = 'upcoming';
         }
@@ -516,25 +516,20 @@ function sports_events(): array
         return [];
     }
 
-    $events = array_map('decorate_sports_event', db()->query('SELECT * FROM sports_events ORDER BY starts_at ASC LIMIT 50')->fetchAll());
-    usort($events, static function (array $left, array $right): int {
-        $order = ['live' => 0, 'upcoming' => 1, 'finished' => 2];
-        $leftOrder = $order[$left['status']] ?? 9;
-        $rightOrder = $order[$right['status']] ?? 9;
-        if ($leftOrder !== $rightOrder) {
-            return $leftOrder <=> $rightOrder;
-        }
-
-        $leftTime = strtotime((string) $left['starts_at']) ?: 0;
-        $rightTime = strtotime((string) $right['starts_at']) ?: 0;
-        if ($left['status'] === 'finished') {
-            return $rightTime <=> $leftTime;
-        }
-
-        return $leftTime <=> $rightTime;
-    });
-
-    return array_slice($events, 0, 12);
+    return array_map(
+        'decorate_sports_event',
+        db()->query("SELECT *,
+            CASE
+                WHEN status = 'finished' OR starts_at <= DATE_SUB(NOW(), INTERVAL 15 MINUTE) THEN 2
+                WHEN starts_at <= NOW() THEN 0
+                ELSE 1
+            END AS display_order
+            FROM sports_events
+            ORDER BY display_order ASC,
+                CASE WHEN status = 'finished' OR starts_at <= DATE_SUB(NOW(), INTERVAL 15 MINUTE) THEN starts_at END DESC,
+                CASE WHEN NOT (status = 'finished' OR starts_at <= DATE_SUB(NOW(), INTERVAL 15 MINUTE)) THEN starts_at END ASC
+            LIMIT 12")->fetchAll()
+    );
 }
 
 function place_pick(int $userId, int $eventId, string $selection, int $stake): void
@@ -645,16 +640,16 @@ function recent_results(): array
         return ['sports' => [], 'casino' => []];
     }
 
-    $sports = array_filter(
-        array_map(
-            'decorate_sports_event',
-            db()->query("SELECT id, sport, league, home_team, away_team, starts_at, draw_odds, status, winner, result_summary FROM sports_events ORDER BY starts_at DESC LIMIT 50")->fetchAll()
-        ),
-        static fn(array $event): bool => ($event['status'] ?? '') === 'finished'
+    $sports = array_map(
+        'decorate_sports_event',
+        db()->query("SELECT id, sport, league, home_team, away_team, starts_at, draw_odds, status, winner, result_summary
+            FROM sports_events
+            WHERE status = 'finished' OR starts_at <= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+            ORDER BY starts_at DESC
+            LIMIT 8")->fetchAll()
     );
-    usort($sports, static fn(array $left, array $right): int => (strtotime((string) $right['starts_at']) ?: 0) <=> (strtotime((string) $left['starts_at']) ?: 0));
     $casino = db()->query('SELECT game, bet, payout, result, created_at FROM game_transactions ORDER BY created_at DESC LIMIT 12')->fetchAll();
-    return ['sports' => array_slice(array_values($sports), 0, 8), 'casino' => $casino];
+    return ['sports' => $sports, 'casino' => $casino];
 }
 
 function user_history(int $userId): array

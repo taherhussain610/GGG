@@ -20,6 +20,9 @@ function db(): PDO
     }
 
     $config = app_config();
+    if ($config['db_host'] === '' || $config['db_name'] === '' || $config['db_user'] === '') {
+        throw new RuntimeException('Database settings are incomplete.');
+    }
     $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', $config['db_host'], $config['db_name']);
     $pdo = new PDO($dsn, $config['db_user'], $config['db_pass'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
