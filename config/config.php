@@ -1,9 +1,7 @@
 <?php
 
-$appKey = getenv('APP_KEY') ?: '';
-if ($appKey === '') {
-    throw new RuntimeException('Set APP_KEY before running Neon Royale.');
-}
+$fileAppKey = '';
+$appKey = getenv('APP_KEY') ?: $fileAppKey;
 
 return [
     'db_host' => getenv('DB_HOST') ?: 'localhost',

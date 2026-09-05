@@ -403,15 +403,27 @@ function settle_sports(): void
         }
     }
 
-    $picks = $pdo->query("SELECT sp.id, sp.user_id, sp.event_id, sp.selection, sp.potential_win, se.winner, se.status
+    $pickIds = $pdo->query("SELECT sp.id
         FROM sports_picks sp
         JOIN sports_events se ON se.id = sp.event_id
-        WHERE sp.status = 'open' AND se.status = 'finished'")->fetchAll();
+        WHERE sp.status = 'open' AND se.status = 'finished'")->fetchAll(PDO::FETCH_COLUMN);
 
-    foreach ($picks as $pick) {
-        $won = $pick['selection'] === $pick['winner'];
+    foreach ($pickIds as $pickId) {
         $pdo->beginTransaction();
         try {
+            $pickStmt = $pdo->prepare("SELECT sp.id, sp.user_id, sp.selection, sp.potential_win, sp.status, se.winner, se.status AS event_status
+                FROM sports_picks sp
+                JOIN sports_events se ON se.id = sp.event_id
+                WHERE sp.id = ?
+                FOR UPDATE");
+            $pickStmt->execute([(int) $pickId]);
+            $pick = $pickStmt->fetch();
+            if (!$pick || $pick['status'] !== 'open' || $pick['event_status'] !== 'finished') {
+                $pdo->rollBack();
+                continue;
+            }
+
+            $won = $pick['selection'] === $pick['winner'];
             $status = $won ? 'won' : 'lost';
             $updatePick = $pdo->prepare('UPDATE sports_picks SET status = ? WHERE id = ? AND status = ?');
             $updatePick->execute([$status, $pick['id'], 'open']);
@@ -594,7 +606,15 @@ function admin_snapshot(): array
 
 function setup_notice(): ?string
 {
-    return db_available() ? null : 'Database connection not configured yet. Update /config/config.php (or DB_* environment variables), import /database.sql, then refresh.';
+    $issues = [];
+    if (trim((string) (app_config()['app_key'] ?? '')) === '') {
+        $issues[] = 'Set APP_KEY in /config/config.php or the environment before going live.';
+    }
+    if (!db_available()) {
+        $issues[] = 'Database connection not configured yet. Update /config/config.php (or DB_* environment variables), import /database.sql, then refresh.';
+    }
+
+    return $issues ? implode(' ', $issues) : null;
 }
 
 function logout_button(): void
