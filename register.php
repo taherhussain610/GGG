@@ -3,13 +3,21 @@ require __DIR__ . '/includes/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
-    try {
-        register_user((string) $_POST['username'], (string) $_POST['email'], (string) $_POST['password']);
-        flash('Welcome to Neon Royale.', 'success');
-        header('Location: /profile.php');
-        exit;
-    } catch (Throwable $e) {
-        flash($e->getMessage(), 'danger');
+    $username = $_POST['username'] ?? null;
+    $email = $_POST['email'] ?? null;
+    $password = $_POST['password'] ?? null;
+
+    if (!is_string($username) || !is_string($email) || !is_string($password)) {
+        flash('Username, email and password are required.', 'danger');
+    } else {
+        try {
+            register_user($username, $email, $password);
+            flash('Welcome to Neon Royale.', 'success');
+            header('Location: /profile.php');
+            exit;
+        } catch (Throwable $e) {
+            flash($e->getMessage(), 'danger');
+        }
     }
 }
 

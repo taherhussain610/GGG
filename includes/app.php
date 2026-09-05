@@ -397,28 +397,23 @@ function settle_sports(): void
     }
 
     $pdo = db();
-    $events = $pdo->query("SELECT id, sport, home_team, away_team, draw_odds, starts_at FROM sports_events WHERE status <> 'finished'")->fetchAll();
-    $now = time();
-    foreach ($events as $event) {
-        $startsAt = strtotime((string) $event['starts_at']);
-        if ($startsAt === false) {
-            continue;
-        }
-        if ($startsAt <= $now) {
-            $options = $event['draw_odds'] !== null ? ['home', 'draw', 'away'] : ['home', 'away'];
-            $winner = $options[array_rand($options)];
-            $summary = match ($winner) {
-                'home' => $event['home_team'] . ' won the virtual fixture',
-                'away' => $event['away_team'] . ' won the virtual fixture',
-                default => 'The virtual fixture finished level',
-            };
-            $update = $pdo->prepare("UPDATE sports_events SET status = 'finished', winner = ?, result_summary = ? WHERE id = ?");
-            $update->execute([$winner, $summary, $event['id']]);
-        } elseif ($startsAt <= $now + 900) {
-            $live = $pdo->prepare("UPDATE sports_events SET status = 'live' WHERE id = ? AND status = 'upcoming'");
-            $live->execute([$event['id']]);
-        }
-    }
+    $pdo->exec("UPDATE sports_events
+        SET status = 'finished',
+            winner = CASE
+                WHEN draw_odds IS NOT NULL THEN ELT(FLOOR(1 + RAND() * 3), 'home', 'draw', 'away')
+                ELSE ELT(FLOOR(1 + RAND() * 2), 'home', 'away')
+            END
+        WHERE status <> 'finished' AND starts_at <= NOW()");
+    $pdo->exec("UPDATE sports_events
+        SET result_summary = CASE winner
+            WHEN 'home' THEN CONCAT(home_team, ' won the virtual fixture')
+            WHEN 'away' THEN CONCAT(away_team, ' won the virtual fixture')
+            ELSE 'The virtual fixture finished level'
+        END
+        WHERE status = 'finished' AND winner IS NOT NULL AND (result_summary IS NULL OR result_summary = '')");
+    $pdo->exec("UPDATE sports_events
+        SET status = 'live'
+        WHERE status = 'upcoming' AND starts_at > NOW() AND starts_at <= DATE_ADD(NOW(), INTERVAL 15 MINUTE)");
 
     $pickIds = $pdo->query("SELECT sp.id
         FROM sports_picks sp

@@ -58,6 +58,7 @@ button.secondary { background: #1a2745; color: var(--text); border: 1px solid va
     backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(87, 213, 255, 0.12);
 }
+.mobile-nav { display: none; }
 .brand { font-size: 1.35rem; font-weight: 800; }
 .subbrand { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.85rem; }
 .nav-links, .account-chip, .mobile-nav { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
@@ -123,6 +124,7 @@ tr:last-child td { border-bottom: 0; }
     .topbar { align-items: flex-start; flex-direction: column; }
     .page-shell { padding-bottom: 6rem; }
     .mobile-nav {
+        display: flex;
         position: fixed;
         left: 0; right: 0; bottom: 0;
         justify-content: space-around;
