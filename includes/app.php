@@ -57,19 +57,10 @@ function current_user(): ?array
         return null;
     }
 
-    static $cachedUserId = null;
-    static $user = null;
     $sessionUserId = (int) $_SESSION['user_id'];
-    if ($cachedUserId === $sessionUserId && $user !== null) {
-        return $user;
-    }
-
     $stmt = db()->prepare('SELECT id, username, email, balance, xp, level, is_admin, last_bonus_at, created_at FROM users WHERE id = ?');
     $stmt->execute([$sessionUserId]);
-    $user = $stmt->fetch() ?: null;
-    $cachedUserId = $sessionUserId;
-
-    return $user;
+    return $stmt->fetch() ?: null;
 }
 
 function refresh_user_session(int $userId): void
@@ -176,7 +167,14 @@ function logout_user(): void
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'] ?? '', (bool) $params['secure'], (bool) $params['httponly']);
+        setcookie(session_name(), '', [
+            'expires' => time() - 42000,
+            'path' => $params['path'] ?? '/',
+            'domain' => $params['domain'] ?? '',
+            'secure' => (bool) ($params['secure'] ?? false),
+            'httponly' => (bool) ($params['httponly'] ?? true),
+            'samesite' => $params['samesite'] ?? 'Lax',
+        ]);
     }
     session_destroy();
 }
@@ -464,7 +462,7 @@ function place_pick(int $userId, int $eventId, string $selection, int $stake): v
         $eventStmt = $pdo->prepare('SELECT * FROM sports_events WHERE id = ? FOR UPDATE');
         $eventStmt->execute([$eventId]);
         $event = $eventStmt->fetch();
-        if (!$event || $event['status'] === 'finished') {
+        if (!$event || $event['status'] !== 'upcoming') {
             throw new InvalidArgumentException('That event is no longer available.');
         }
 
