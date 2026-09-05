@@ -15,19 +15,7 @@ $filters = [
     'category' => $category,
     'provider' => (string) ($_GET['provider'] ?? ''),
 ];
-$startedAt = microtime(true);
 $games = provider_catalog($filters);
-provider_log_api(
-    null,
-    'outbound',
-    '/provider/catalog.php',
-    'GET',
-    null,
-    200,
-    $filters,
-    ['count' => count($games)],
-    (int) round((microtime(true) - $startedAt) * 1000)
-);
 
 json_response([
     'ok' => true,

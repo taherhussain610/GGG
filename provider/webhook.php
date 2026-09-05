@@ -8,9 +8,16 @@ if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 65536) {
     json_response(['ok' => false, 'error' => 'Payload too large'], 413);
 }
 
-$body = file_get_contents('php://input');
-if (!is_string($body) || strlen($body) > 65536) {
+$stream = fopen('php://input', 'rb');
+$body = is_resource($stream) ? stream_get_contents($stream, 65537) : false;
+if (is_resource($stream)) {
+    fclose($stream);
+}
+if (!is_string($body)) {
     json_response(['ok' => false, 'error' => 'Unable to read webhook body'], 400);
+}
+if (strlen($body) > 65536) {
+    json_response(['ok' => false, 'error' => 'Payload too large'], 413);
 }
 
 try {

@@ -434,7 +434,8 @@ function provider_round_outcome(string $category, int $bet): array
 
 function provider_play_round(int $userId, string $token, int $bet, string $requestId): array
 {
-    if (!preg_match('/^[A-Za-z0-9_-]{16,80}$/', $requestId)) {
+    $requestId = strtolower(trim($requestId));
+    if (!preg_match('/^[a-z0-9_-]{16,80}$/', $requestId)) {
         throw new InvalidArgumentException('Invalid round request ID.');
     }
     if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
@@ -444,20 +445,29 @@ function provider_play_round(int $userId, string $token, int $bet, string $reque
     $pdo = db();
     $pdo->beginTransaction();
     try {
-        $sessionStmt = $pdo->prepare("SELECT gs.id, gs.public_id, gs.status, gs.expires_at,
-                g.id AS game_id, g.slug AS game_slug, g.title, g.category, g.min_bet, g.max_bet,
-                g.is_enabled AS game_enabled, p.id AS provider_id, p.name AS provider_name,
-                p.adapter, p.is_enabled AS provider_enabled
-            FROM game_sessions gs
-            JOIN games g ON g.id=gs.game_id
-            JOIN providers p ON p.id=gs.provider_id
-            WHERE gs.token_hash=? AND gs.user_id=?
+        $sessionStmt = $pdo->prepare("SELECT id, public_id, status, expires_at, game_id, provider_id
+            FROM game_sessions
+            WHERE token_hash=? AND user_id=?
             FOR UPDATE");
         $sessionStmt->execute([hash('sha256', $token), $userId]);
         $session = $sessionStmt->fetch();
         if (!$session) {
             throw new InvalidArgumentException('Game session not found.');
         }
+
+        $configStmt = $pdo->prepare("SELECT g.slug AS game_slug, g.title, g.category, g.min_bet, g.max_bet,
+                g.is_enabled AS game_enabled, p.name AS provider_name, p.adapter,
+                p.is_enabled AS provider_enabled
+            FROM games g
+            JOIN providers p ON p.id=g.provider_id
+            WHERE g.id=? AND p.id=?
+            LOCK IN SHARE MODE");
+        $configStmt->execute([$session['game_id'], $session['provider_id']]);
+        $config = $configStmt->fetch();
+        if (!$config) {
+            throw new InvalidArgumentException('Provider game configuration is unavailable.');
+        }
+        $session = array_merge($session, $config);
 
         $existingStmt = $pdo->prepare("SELECT gr.external_round_id, gr.bet, gr.payout, gr.result
             FROM game_rounds gr
