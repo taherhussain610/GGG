@@ -1,3 +1,4 @@
 <?php
 require __DIR__ . '/../includes/bootstrap.php';
-json_response(['leaders' => leaderboard_rows()]);
+$leaders = leaderboard_rows();
+json_response(['ok' => true, 'leaders' => $leaders, 'rows' => $leaders]);
