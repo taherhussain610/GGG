@@ -4,6 +4,10 @@ require __DIR__ . '/includes/bootstrap.php';
 $user = current_user();
 $games = game_definitions();
 $jackpots = jackpot_totals();
+$dashboard = dashboard_snapshot();
+$leaders = array_slice(leaderboard_rows(), 0, 5);
+$results = recent_results();
+$featuredEvents = array_slice(sports_events(), 0, 4);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_login();
@@ -49,6 +53,19 @@ render_header('Casino', 'casino');
         </div>
     </div>
 </section>
+<section class="stats-grid compact-stats">
+    <article class="stat-card"><span class="badge">Players</span><h3 data-dashboard-players><?= number_format($dashboard['players']) ?></h3><p class="muted">Registered profiles</p></article>
+    <article class="stat-card"><span class="badge">Top Wallet</span><h3 data-dashboard-top-balance><?= fmt_coins($dashboard['top_balance']) ?></h3><p class="muted">Best virtual bankroll</p></article>
+    <article class="stat-card"><span class="badge">Open Picks</span><h3 data-dashboard-open-picks><?= number_format($dashboard['open_picks']) ?></h3><p class="muted">Pending sports slips</p></article>
+    <article class="stat-card"><span class="badge">Jackpots</span><h3 data-dashboard-jackpot-total><?= fmt_coins($dashboard['jackpot_total']) ?></h3><p class="muted">Total virtual prize pools</p></article>
+</section>
+<section class="toolbar toolbar-tabs">
+    <a class="mini-tab active" href="/index.php">Featured lobby</a>
+    <a class="mini-tab" href="/lobby.php">Game routes</a>
+    <a class="mini-tab" href="/sports.php">Sports board</a>
+    <a class="mini-tab" href="/results.php">Results feed</a>
+    <a class="mini-tab" href="/jackpots.php">Jackpots</a>
+</section>
 <section class="promo-grid">
     <?php foreach ($jackpots as $name => $value): ?>
         <article class="stat-card">
@@ -57,6 +74,58 @@ render_header('Casino', 'casino');
             <strong><?= fmt_coins($value) ?></strong>
         </article>
     <?php endforeach; ?>
+</section>
+<section class="results-grid">
+    <article class="result-card table-wrap">
+        <div class="section-head">
+            <div>
+                <span class="badge">Live board</span>
+                <h2>Featured virtual events</h2>
+            </div>
+            <a class="button-link small" href="/sports.php">Open sportsbook</a>
+        </div>
+        <table>
+            <thead><tr><th>Event</th><th>Status</th><th>Markets</th></tr></thead>
+            <tbody>
+                <?php if (!$featuredEvents): ?>
+                    <tr><td colspan="3" class="muted">No featured events available yet.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($featuredEvents as $event): ?>
+                        <tr>
+                            <td><?= e($event['sport']) ?> · <?= e($event['home_team']) ?> vs <?= e($event['away_team']) ?></td>
+                            <td><?= e(ucfirst($event['status'])) ?></td>
+                            <td><?= e((string) $event['home_odds']) ?> / <?= $event['draw_odds'] !== null ? e((string) $event['draw_odds']) . ' / ' : '' ?><?= e((string) $event['away_odds']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </article>
+    <article class="result-card table-wrap">
+        <div class="section-head">
+            <div>
+                <span class="badge">Leaders</span>
+                <h2>Top players</h2>
+            </div>
+            <a class="button-link small" href="/leaderboard.php">Full table</a>
+        </div>
+        <table>
+            <thead><tr><th>Player</th><th>Balance</th><th>Level</th></tr></thead>
+            <tbody>
+                <?php if (!$leaders): ?>
+                    <tr><td colspan="3" class="muted">No leaderboard data yet.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($leaders as $leader): ?>
+                        <tr>
+                            <td><?= e($leader['username']) ?></td>
+                            <td><?= fmt_coins((int) $leader['balance']) ?></td>
+                            <td><?= (int) $leader['level'] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </article>
 </section>
 <section class="section-head">
     <h2>Casino categories</h2>
@@ -98,5 +167,35 @@ render_header('Casino', 'casino');
             <?php endif; ?>
         </article>
     <?php endforeach; ?>
+</section>
+<section class="results-grid">
+    <article class="result-card table-wrap">
+        <div class="section-head"><h2>Latest sports results</h2></div>
+        <table>
+            <thead><tr><th>Fixture</th><th>Result</th></tr></thead>
+            <tbody>
+                <?php $latestSports = array_slice($results['sports'], 0, 4); ?>
+                <?php if (!$latestSports): ?>
+                    <tr><td colspan="2" class="muted">No finished sports fixtures yet.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($latestSports as $row): ?>
+                        <tr>
+                            <td><?= e($row['sport']) ?> · <?= e($row['home_team']) ?> vs <?= e($row['away_team']) ?></td>
+                            <td><?= e($row['result_summary'] ?: strtoupper((string) $row['winner'])) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </article>
+    <article class="result-card table-wrap">
+        <div class="section-head"><h2>Activity console</h2></div>
+        <div class="console-box">
+            <div class="console-line">API /api/balance.php · Wallet refresh</div>
+            <div class="console-line">API /api/sports.php · Live summary</div>
+            <div class="console-line">API /api/results.php · Result stream</div>
+            <div class="console-line">API /api/dashboard.php · Widget snapshot</div>
+        </div>
+    </article>
 </section>
 <?php render_footer('casino'); ?>

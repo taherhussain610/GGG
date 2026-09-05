@@ -595,6 +595,47 @@ function jackpot_totals(): array
     ];
 }
 
+function dashboard_snapshot(): array
+{
+    $defaultJackpots = jackpot_totals();
+    $snapshot = [
+        'players' => 0,
+        'top_balance' => 0,
+        'open_picks' => 0,
+        'casino_rounds' => 0,
+        'live_events' => 0,
+        'upcoming_events' => 0,
+        'finished_events' => 0,
+        'jackpot_total' => array_sum($defaultJackpots),
+        'top_jackpot' => max($defaultJackpots),
+    ];
+
+    if (!db_available()) {
+        return $snapshot;
+    }
+
+    $row = db()->query("SELECT
+            (SELECT COUNT(*) FROM users) AS players,
+            (SELECT COALESCE(MAX(balance), 0) FROM users) AS top_balance,
+            (SELECT COUNT(*) FROM sports_picks WHERE status = 'open') AS open_picks,
+            (SELECT COUNT(*) FROM game_transactions) AS casino_rounds,
+            (SELECT COUNT(*) FROM sports_events WHERE status = 'live' OR (status <> 'finished' AND starts_at <= NOW() AND starts_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE))) AS live_events,
+            (SELECT COUNT(*) FROM sports_events WHERE status = 'upcoming' AND starts_at > NOW()) AS upcoming_events,
+            (SELECT COUNT(*) FROM sports_events WHERE status = 'finished' OR starts_at <= DATE_SUB(NOW(), INTERVAL 15 MINUTE)) AS finished_events")->fetch() ?: [];
+
+    return [
+        'players' => (int) ($row['players'] ?? 0),
+        'top_balance' => (int) ($row['top_balance'] ?? 0),
+        'open_picks' => (int) ($row['open_picks'] ?? 0),
+        'casino_rounds' => (int) ($row['casino_rounds'] ?? 0),
+        'live_events' => (int) ($row['live_events'] ?? 0),
+        'upcoming_events' => (int) ($row['upcoming_events'] ?? 0),
+        'finished_events' => (int) ($row['finished_events'] ?? 0),
+        'jackpot_total' => array_sum(jackpot_totals()),
+        'top_jackpot' => max(jackpot_totals()),
+    ];
+}
+
 function leaderboard_rows(): array
 {
     if (!db_available()) {
@@ -658,7 +699,7 @@ function recent_results(): array
 function user_history(int $userId): array
 {
     if (!db_available()) {
-        return ['games' => [], 'picks' => []];
+        return ['games' => [], 'picks' => [], 'summary' => ['total_bet' => 0, 'total_payout' => 0, 'open_picks' => 0]];
     }
 
     $gameStmt = db()->prepare('SELECT game, bet, payout, result, created_at FROM game_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 12');
@@ -670,13 +711,31 @@ function user_history(int $userId): array
         ORDER BY sp.created_at DESC LIMIT 12");
     $pickStmt->execute([$userId]);
 
-    return ['games' => $gameStmt->fetchAll(), 'picks' => $pickStmt->fetchAll()];
+    $summaryStmt = db()->prepare("SELECT
+            COALESCE(SUM(bet), 0) AS total_bet,
+            COALESCE(SUM(payout), 0) AS total_payout
+        FROM game_transactions
+        WHERE user_id = ?");
+    $summaryStmt->execute([$userId]);
+    $summary = $summaryStmt->fetch() ?: [];
+    $openPickStmt = db()->prepare("SELECT COUNT(*) FROM sports_picks WHERE user_id = ? AND status = 'open'");
+    $openPickStmt->execute([$userId]);
+
+    return [
+        'games' => $gameStmt->fetchAll(),
+        'picks' => $pickStmt->fetchAll(),
+        'summary' => [
+            'total_bet' => (int) ($summary['total_bet'] ?? 0),
+            'total_payout' => (int) ($summary['total_payout'] ?? 0),
+            'open_picks' => (int) ($openPickStmt->fetchColumn() ?: 0),
+        ],
+    ];
 }
 
 function admin_snapshot(): array
 {
     if (!db_available()) {
-        return ['stats' => [], 'users' => []];
+        return ['stats' => [], 'users' => [], 'activity' => []];
     }
 
     $stats = db()->query("SELECT
@@ -686,8 +745,13 @@ function admin_snapshot(): array
         (SELECT COALESCE(SUM(payout),0) FROM game_transactions) AS payout_total,
         (SELECT COUNT(*) FROM sports_picks) AS picks_total")->fetch() ?: [];
     $users = db()->query('SELECT username, email, balance, xp, level, is_admin, last_bonus_at FROM users ORDER BY created_at DESC LIMIT 20')->fetchAll();
+    $activity = db()->query("SELECT game, COUNT(*) AS rounds, COALESCE(SUM(bet), 0) AS bet_total, COALESCE(SUM(payout), 0) AS payout_total
+        FROM game_transactions
+        GROUP BY game
+        ORDER BY rounds DESC, bet_total DESC
+        LIMIT 10")->fetchAll();
 
-    return ['stats' => $stats, 'users' => $users];
+    return ['stats' => $stats, 'users' => $users, 'activity' => $activity];
 }
 
 function setup_notice(): ?string
@@ -776,10 +840,12 @@ function render_header(string $title, string $active = 'casino'): void
 
 function render_footer(string $active = 'casino'): void
 {
+    $user = current_user();
     $links = [
         'casino' => ['/index.php', 'Casino'],
         'sports' => ['/sports.php', 'Sports'],
         'results' => ['/results.php', 'Results'],
+        'leaderboard' => ['/leaderboard.php', 'Leaders'],
         'profile' => ['/profile.php', 'Profile'],
     ];
     ?>
@@ -788,6 +854,9 @@ function render_footer(string $active = 'casino'): void
     <?php foreach ($links as $key => [$href, $label]): ?>
         <a class="<?= $active === $key ? 'active' : '' ?>" <?= $active === $key ? 'aria-current="page"' : '' ?> href="<?= e($href) ?>"><?= e($label) ?></a>
     <?php endforeach; ?>
+    <?php if ($user && (int) $user['is_admin'] === 1): ?>
+        <a class="<?= $active === 'admin' ? 'active' : '' ?>" <?= $active === 'admin' ? 'aria-current="page"' : '' ?> href="/admin.php">Admin</a>
+    <?php endif; ?>
 </nav>
 </body>
 </html>

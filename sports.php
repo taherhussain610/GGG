@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $events = sports_events();
+$summary = dashboard_snapshot();
 render_header('Sports', 'sports');
 ?>
 <section class="hero">
@@ -36,9 +37,49 @@ render_header('Sports', 'sports');
         </div>
     </div>
 </section>
+<section class="stats-grid compact-stats">
+    <article class="stat-card"><span class="badge live">Live</span><h3><?= number_format($summary['live_events']) ?></h3><p class="muted">Events in play</p></article>
+    <article class="stat-card"><span class="badge upcoming">Upcoming</span><h3><?= number_format($summary['upcoming_events']) ?></h3><p class="muted">Ready for picks</p></article>
+    <article class="stat-card"><span class="badge finished">Finished</span><h3><?= number_format($summary['finished_events']) ?></h3><p class="muted">Settled fixtures</p></article>
+    <article class="stat-card"><span class="badge">Tickets</span><h3><?= number_format($summary['open_picks']) ?></h3><p class="muted">Open virtual slips</p></article>
+</section>
+<section class="toolbar toolbar-tabs">
+    <button type="button" class="mini-tab active" data-panel-filter="all">All</button>
+    <button type="button" class="mini-tab" data-panel-filter="live">Live</button>
+    <button type="button" class="mini-tab" data-panel-filter="upcoming">Upcoming</button>
+    <button type="button" class="mini-tab" data-panel-filter="finished">Finished</button>
+</section>
+<section class="panel table-wrap">
+    <div class="section-head">
+        <div>
+            <span class="badge">Odds table</span>
+            <h2>Quick market table</h2>
+        </div>
+        <a class="button-link small" href="/api/sports.php?details=1">JSON feed</a>
+    </div>
+    <table>
+        <thead><tr><th>Sport</th><th>Fixture</th><th>Home</th><th>Draw</th><th>Away</th><th>Status</th></tr></thead>
+        <tbody>
+            <?php if (!$events): ?>
+                <tr><td colspan="6" class="muted">No sports events loaded yet.</td></tr>
+            <?php else: ?>
+                <?php foreach ($events as $event): ?>
+                    <tr>
+                        <td><?= e($event['sport']) ?></td>
+                        <td><?= e($event['home_team']) ?> vs <?= e($event['away_team']) ?></td>
+                        <td><?= e((string) $event['home_odds']) ?></td>
+                        <td><?= $event['draw_odds'] !== null ? e((string) $event['draw_odds']) : '—' ?></td>
+                        <td><?= e((string) $event['away_odds']) ?></td>
+                        <td><?= e(ucfirst($event['status'])) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</section>
 <section class="market-grid">
     <?php foreach ($events as $event): ?>
-        <article class="market-card">
+        <article class="market-card" data-panel-category="<?= e($event['status']) ?>">
             <div class="section-head">
                 <div>
                     <span class="badge <?= e($event['status']) ?>"><?= e(ucfirst($event['status'])) ?></span>
