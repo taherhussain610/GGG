@@ -14,6 +14,7 @@ async function refreshLivePanels() {
     if (sportsTarget) {
         try {
             const response = await fetch('/api/sports.php', { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) return;
             const data = await response.json();
             sportsTarget.textContent = `${data.live_count ?? 0} live · ${data.upcoming_count ?? 0} upcoming`;
         } catch (_) {}
@@ -23,6 +24,7 @@ async function refreshLivePanels() {
     if (resultsTarget) {
         try {
             const response = await fetch('/api/results.php', { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) return;
             const data = await response.json();
             resultsTarget.textContent = `${(data.sports ?? []).length} sports results · ${(data.casino ?? []).length} casino logs`;
         } catch (_) {}

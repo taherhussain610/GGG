@@ -51,6 +51,8 @@ button.secondary { background: #1a2745; color: var(--text); border: 1px solid va
 .brand { font-size: 1.35rem; font-weight: 800; }
 .subbrand { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.85rem; }
 .nav-links, .account-chip, .mobile-nav { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.logout-form { margin: 0; }
+.logout-form button { padding: 0.55rem 0.8rem; }
 .nav-links a, .mobile-nav a, .account-chip a {
     padding: 0.55rem 0.8rem;
     border-radius: 999px;

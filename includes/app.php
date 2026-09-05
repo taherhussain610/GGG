@@ -57,14 +57,17 @@ function current_user(): ?array
         return null;
     }
 
-    static $user;
-    if ($user !== null) {
+    static $cachedUserId = null;
+    static $user = null;
+    $sessionUserId = (int) $_SESSION['user_id'];
+    if ($cachedUserId === $sessionUserId && $user !== null) {
         return $user;
     }
 
     $stmt = db()->prepare('SELECT id, username, email, balance, xp, level, is_admin, last_bonus_at, created_at FROM users WHERE id = ?');
-    $stmt->execute([$_SESSION['user_id']]);
+    $stmt->execute([$sessionUserId]);
     $user = $stmt->fetch() ?: null;
+    $cachedUserId = $sessionUserId;
 
     return $user;
 }
@@ -138,6 +141,7 @@ function award_xp(PDO $pdo, int $userId, int $xpGain): void
 
 function register_user(string $username, string $email, string $password): void
 {
+    start_secure_session();
     $username = trim($username);
     $email = trim(strtolower($email));
 
@@ -147,6 +151,7 @@ function register_user(string $username, string $email, string $password): void
 
     $stmt = db()->prepare('INSERT INTO users(username, email, password_hash) VALUES(?,?,?)');
     $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT)]);
+    session_regenerate_id(true);
     refresh_user_session((int) db()->lastInsertId());
 }
 
@@ -372,12 +377,10 @@ function settle_sports(): void
     }
 
     $pdo = db();
-    $events = $pdo->query("SELECT id, sport, home_team, away_team, draw_odds FROM sports_events WHERE status <> 'finished'")->fetchAll();
+    $events = $pdo->query("SELECT id, sport, home_team, away_team, draw_odds, starts_at FROM sports_events WHERE status <> 'finished'")->fetchAll();
     $now = time();
     foreach ($events as $event) {
-        $startStmt = $pdo->prepare('SELECT starts_at FROM sports_events WHERE id = ?');
-        $startStmt->execute([$event['id']]);
-        $startsAt = strtotime((string) ($startStmt->fetchColumn() ?: 'now'));
+        $startsAt = strtotime((string) $event['starts_at']);
         if ($startsAt <= $now) {
             $options = $event['draw_odds'] !== null ? ['home', 'draw', 'away'] : ['home', 'away'];
             $winner = $options[array_rand($options)];
@@ -404,8 +407,12 @@ function settle_sports(): void
         $pdo->beginTransaction();
         try {
             $status = $won ? 'won' : 'lost';
-            $updatePick = $pdo->prepare('UPDATE sports_picks SET status = ? WHERE id = ?');
-            $updatePick->execute([$status, $pick['id']]);
+            $updatePick = $pdo->prepare('UPDATE sports_picks SET status = ? WHERE id = ? AND status = ?');
+            $updatePick->execute([$status, $pick['id'], 'open']);
+            if ($updatePick->rowCount() !== 1) {
+                $pdo->rollBack();
+                continue;
+            }
             if ($won) {
                 $credit = $pdo->prepare('UPDATE users SET balance = balance + ? WHERE id = ?');
                 $credit->execute([(int) $pick['potential_win'], $pick['user_id']]);
@@ -584,6 +591,16 @@ function setup_notice(): ?string
     return db_available() ? null : 'Database connection not configured yet. Update /config/config.php (or DB_* environment variables), import /database.sql, then refresh.';
 }
 
+function logout_button(): void
+{
+    ?>
+    <form method="post" action="/logout.php" class="logout-form">
+        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+        <button type="submit" class="secondary">Logout</button>
+    </form>
+    <?php
+}
+
 function render_header(string $title, string $active = 'casino'): void
 {
     $user = current_user();
@@ -624,7 +641,7 @@ function render_header(string $title, string $active = 'casino'): void
         <?php if ($user): ?>
             <span class="balance-label">Balance</span>
             <strong id="balance-display" data-balance><?= fmt_coins((int) $user['balance']) ?></strong>
-            <a href="/logout.php">Logout</a>
+            <?php logout_button(); ?>
         <?php else: ?>
             <a href="/login.php">Login</a>
             <a href="/register.php">Register</a>
