@@ -54,7 +54,11 @@ function verify_csrf(): void
     start_secure_session();
     $token = $_POST['csrf_token'] ?? '';
     $appKey = trim((string) (app_config()['app_key'] ?? ''));
-    if ($appKey !== '' && !empty($_SESSION['csrf_nonce'])) {
+    if ($appKey !== '') {
+        if (empty($_SESSION['csrf_nonce'])) {
+            http_response_code(422);
+            exit('Invalid CSRF token.');
+        }
         $expected = $_SESSION['csrf_nonce'] . '.' . hash_hmac('sha256', $_SESSION['csrf_nonce'], $appKey);
         if (hash_equals($expected, $token)) {
             return;
@@ -459,7 +463,6 @@ function settle_sports(): void
 
 function sports_events(): array
 {
-    settle_sports();
     if (!db_available()) {
         return [];
     }
@@ -575,7 +578,6 @@ function recent_results(): array
         return ['sports' => [], 'casino' => []];
     }
 
-    settle_sports();
     $sports = db()->query("SELECT sport, league, home_team, away_team, winner, result_summary, starts_at FROM sports_events WHERE status = 'finished' ORDER BY starts_at DESC LIMIT 8")->fetchAll();
     $casino = db()->query('SELECT game, bet, payout, result, created_at FROM game_transactions ORDER BY created_at DESC LIMIT 12')->fetchAll();
     return ['sports' => $sports, 'casino' => $casino];
@@ -620,13 +622,22 @@ function setup_notice(): ?string
 {
     $issues = [];
     if (trim((string) (app_config()['app_key'] ?? '')) === '') {
-        $issues[] = 'Set APP_KEY in /config/config.php or the environment to sign CSRF tokens before going live.';
+        $issues[] = 'Set APP_KEY before going live.';
     }
     if (!db_available()) {
-        $issues[] = 'Database connection not configured yet. Update /config/config.php (or DB_* environment variables), import /database.sql, then refresh.';
+        $issues[] = 'Database connection not configured yet.';
     }
 
-    return $issues ? implode(' ', $issues) : null;
+    if (!$issues) {
+        return null;
+    }
+
+    $isLocal = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
+    if ($isLocal) {
+        return implode(' ', $issues) . ' Update /config/config.php or the relevant environment variables, then import /database.sql.';
+    }
+
+    return 'Site setup is incomplete. Please contact the site administrator.';
 }
 
 function logout_button(): void
@@ -669,10 +680,10 @@ function render_header(string $title, string $active = 'casino'): void
     </div>
     <nav class="nav-links">
         <?php foreach ($nav as $key => [$href, $label]): ?>
-            <a class="<?= $active === $key ? 'active' : '' ?>" href="<?= e($href) ?>"><?= e($label) ?></a>
+            <a class="<?= $active === $key ? 'active' : '' ?>" <?= $active === $key ? 'aria-current="page"' : '' ?> href="<?= e($href) ?>"><?= e($label) ?></a>
         <?php endforeach; ?>
         <?php if ($user && (int) $user['is_admin'] === 1): ?>
-            <a class="<?= $active === 'admin' ? 'active' : '' ?>" href="/admin.php">Admin</a>
+            <a class="<?= $active === 'admin' ? 'active' : '' ?>" <?= $active === 'admin' ? 'aria-current="page"' : '' ?> href="/admin.php">Admin</a>
         <?php endif; ?>
     </nav>
     <div class="account-chip">
@@ -704,7 +715,7 @@ function render_footer(string $active = 'casino'): void
 </main>
 <nav class="mobile-nav">
     <?php foreach ($links as $key => [$href, $label]): ?>
-        <a class="<?= $active === $key ? 'active' : '' ?>" href="<?= e($href) ?>"><?= e($label) ?></a>
+        <a class="<?= $active === $key ? 'active' : '' ?>" <?= $active === $key ? 'aria-current="page"' : '' ?> href="<?= e($href) ?>"><?= e($label) ?></a>
     <?php endforeach; ?>
 </nav>
 </body>

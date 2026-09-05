@@ -1,6 +1,15 @@
 <?php
 require __DIR__ . '/includes/bootstrap.php';
 require_admin();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+    settle_sports();
+    flash('Sports feed settled successfully.', 'success');
+    header('Location: /admin.php');
+    exit;
+}
+
 $data = admin_snapshot();
 $stats = $data['stats'];
 render_header('Admin', 'admin');
@@ -11,6 +20,10 @@ render_header('Admin', 'admin');
             <span class="badge">Admin</span>
             <h1>Balances, bonuses and virtual game activity</h1>
         </div>
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <button type="submit" class="secondary">Settle sports feed</button>
+        </form>
     </div>
     <div class="stats-grid">
         <article class="stat-card"><h3><?= number_format((int) ($stats['users_total'] ?? 0)) ?></h3><p class="muted">Users</p></article>
