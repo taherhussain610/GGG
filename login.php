@@ -3,12 +3,17 @@ require __DIR__ . '/includes/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
-    if (attempt_login((string) $_POST['email'], (string) $_POST['password'])) {
+    $email = $_POST['email'] ?? null;
+    $password = $_POST['password'] ?? null;
+    if (!is_string($email) || !is_string($password)) {
+        flash('Email and password are required.', 'danger');
+    } elseif (attempt_login($email, $password)) {
         flash('Welcome back.', 'success');
         header('Location: /profile.php');
         exit;
+    } else {
+        flash('Invalid email or password.', 'danger');
     }
-    flash('Invalid email or password.', 'danger');
 }
 
 render_header('Login');

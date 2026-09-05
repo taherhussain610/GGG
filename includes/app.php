@@ -4,6 +4,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 
+function is_local_request(): bool
+{
+    return in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
+}
+
+function app_key(): string
+{
+    return trim((string) (app_config()['app_key'] ?? ''));
+}
+
 function start_secure_session(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) {
@@ -33,7 +43,7 @@ function send_security_headers(): void
 function csrf_token(): string
 {
     start_secure_session();
-    $appKey = trim((string) (app_config()['app_key'] ?? ''));
+    $appKey = app_key();
     if ($appKey !== '') {
         if (empty($_SESSION['csrf_nonce'])) {
             $_SESSION['csrf_nonce'] = bin2hex(random_bytes(32));
@@ -53,7 +63,7 @@ function verify_csrf(): void
 {
     start_secure_session();
     $token = $_POST['csrf_token'] ?? '';
-    $appKey = trim((string) (app_config()['app_key'] ?? ''));
+    $appKey = app_key();
     if ($appKey !== '') {
         if (empty($_SESSION['csrf_nonce'])) {
             http_response_code(422);
@@ -63,8 +73,11 @@ function verify_csrf(): void
         if (hash_equals($expected, $token)) {
             return;
         }
-    } elseif (hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+    } elseif (is_local_request() && hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
         return;
+    } elseif ($appKey === '') {
+        http_response_code(503);
+        exit('APP_KEY must be configured before accepting state changes.');
     }
 
     http_response_code(422);
@@ -244,7 +257,7 @@ function poker_hand_rank(array $cards): array
     $counts = array_count_values($ranks);
     rsort($counts);
     $flush = count(array_unique($suits)) === 1;
-    $straight = $values === range($values[0], $values[0] + 4);
+    $straight = $values === range($values[0], $values[0] + 4) || $values === [2, 3, 4, 5, 14];
 
     if ($straight && $flush) {
         return ['rank' => 'Straight Flush', 'multiplier' => 15];
@@ -401,11 +414,12 @@ function settle_sports(): void
     }
 
     $pdo = db();
+    $seed = "CAST(CONV(SUBSTRING(MD5(CONCAT(id, '|', starts_at, '|', home_team, '|', away_team)), 1, 8), 16, 10) AS UNSIGNED)";
     $pdo->exec("UPDATE sports_events
         SET status = 'finished',
             winner = CASE
-                WHEN draw_odds IS NOT NULL THEN ELT(FLOOR(1 + RAND() * 3), 'home', 'draw', 'away')
-                ELSE ELT(FLOOR(1 + RAND() * 2), 'home', 'away')
+                WHEN draw_odds IS NOT NULL THEN ELT(MOD({$seed}, 3) + 1, 'home', 'draw', 'away')
+                ELSE ELT(MOD({$seed}, 2) + 1, 'home', 'away')
             END
         WHERE status <> 'finished' AND starts_at <= NOW()");
     $pdo->exec("UPDATE sports_events
@@ -461,13 +475,66 @@ function settle_sports(): void
     }
 }
 
+function decorate_sports_event(array $event): array
+{
+    $startsAt = strtotime((string) ($event['starts_at'] ?? ''));
+    if (($event['status'] ?? '') !== 'finished' && $startsAt !== false) {
+        if ($startsAt <= time()) {
+            $event['status'] = 'finished';
+        } elseif ($startsAt <= time() + 900) {
+            $event['status'] = 'live';
+        } else {
+            $event['status'] = 'upcoming';
+        }
+    }
+
+    if (($event['status'] ?? '') === 'finished' && empty($event['winner'])) {
+        $options = $event['draw_odds'] !== null ? ['home', 'draw', 'away'] : ['home', 'away'];
+        $seed = (int) hexdec(substr(md5(implode('|', [
+            (string) ($event['id'] ?? ''),
+            (string) ($event['starts_at'] ?? ''),
+            (string) ($event['home_team'] ?? ''),
+            (string) ($event['away_team'] ?? ''),
+        ])), 0, 8));
+        $event['winner'] = $options[$seed % count($options)];
+    }
+
+    if (($event['status'] ?? '') === 'finished' && empty($event['result_summary']) && !empty($event['winner'])) {
+        $event['result_summary'] = match ($event['winner']) {
+            'home' => ($event['home_team'] ?? 'Home side') . ' won the virtual fixture',
+            'away' => ($event['away_team'] ?? 'Away side') . ' won the virtual fixture',
+            default => 'The virtual fixture finished level',
+        };
+    }
+
+    return $event;
+}
+
 function sports_events(): array
 {
     if (!db_available()) {
         return [];
     }
 
-    return db()->query('SELECT * FROM sports_events ORDER BY FIELD(status, "live", "upcoming", "finished"), CASE WHEN status = "finished" THEN starts_at END DESC, CASE WHEN status <> "finished" THEN starts_at END ASC LIMIT 12')->fetchAll();
+    $events = array_map('decorate_sports_event', db()->query('SELECT * FROM sports_events ORDER BY starts_at ASC LIMIT 50')->fetchAll());
+    usort($events, static function (array $left, array $right): int {
+        $order = ['live' => 0, 'upcoming' => 1, 'finished' => 2];
+        $leftOrder = $order[$left['status']] ?? 9;
+        $rightOrder = $order[$right['status']] ?? 9;
+        if ($leftOrder !== $rightOrder) {
+            return $leftOrder <=> $rightOrder;
+        }
+
+        $leftTime = strtotime((string) $left['starts_at']) ?: 0;
+        $rightTime = strtotime((string) $right['starts_at']) ?: 0;
+        if ($left['status'] === 'finished') {
+            return $rightTime <=> $leftTime;
+        }
+
+        return $leftTime <=> $rightTime;
+    });
+
+    return array_slice($events, 0, 12);
 }
 
 function place_pick(int $userId, int $eventId, string $selection, int $stake): void
@@ -489,7 +556,7 @@ function place_pick(int $userId, int $eventId, string $selection, int $stake): v
         $eventStmt = $pdo->prepare('SELECT * FROM sports_events WHERE id = ? FOR UPDATE');
         $eventStmt->execute([$eventId]);
         $event = $eventStmt->fetch();
-        if (!$event || $event['status'] !== 'upcoming') {
+        if (!$event || decorate_sports_event($event)['status'] !== 'upcoming') {
             throw new InvalidArgumentException('That event is no longer available.');
         }
 
@@ -578,9 +645,16 @@ function recent_results(): array
         return ['sports' => [], 'casino' => []];
     }
 
-    $sports = db()->query("SELECT sport, league, home_team, away_team, winner, result_summary, starts_at FROM sports_events WHERE status = 'finished' ORDER BY starts_at DESC LIMIT 8")->fetchAll();
+    $sports = array_filter(
+        array_map(
+            'decorate_sports_event',
+            db()->query("SELECT id, sport, league, home_team, away_team, starts_at, draw_odds, status, winner, result_summary FROM sports_events ORDER BY starts_at DESC LIMIT 50")->fetchAll()
+        ),
+        static fn(array $event): bool => ($event['status'] ?? '') === 'finished'
+    );
+    usort($sports, static fn(array $left, array $right): int => (strtotime((string) $right['starts_at']) ?: 0) <=> (strtotime((string) $left['starts_at']) ?: 0));
     $casino = db()->query('SELECT game, bet, payout, result, created_at FROM game_transactions ORDER BY created_at DESC LIMIT 12')->fetchAll();
-    return ['sports' => $sports, 'casino' => $casino];
+    return ['sports' => array_slice(array_values($sports), 0, 8), 'casino' => $casino];
 }
 
 function user_history(int $userId): array
@@ -621,7 +695,7 @@ function admin_snapshot(): array
 function setup_notice(): ?string
 {
     $issues = [];
-    if (trim((string) (app_config()['app_key'] ?? '')) === '') {
+    if (app_key() === '') {
         $issues[] = 'Set APP_KEY before going live.';
     }
     if (!db_available()) {
@@ -632,8 +706,7 @@ function setup_notice(): ?string
         return null;
     }
 
-    $isLocal = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
-    if ($isLocal) {
+    if (is_local_request()) {
         return implode(' ', $issues) . ' Update /config/config.php or the relevant environment variables, then import /database.sql.';
     }
 
