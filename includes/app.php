@@ -33,6 +33,15 @@ function send_security_headers(): void
 function csrf_token(): string
 {
     start_secure_session();
+    $appKey = trim((string) (app_config()['app_key'] ?? ''));
+    if ($appKey !== '') {
+        if (empty($_SESSION['csrf_nonce'])) {
+            $_SESSION['csrf_nonce'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['csrf_nonce'] . '.' . hash_hmac('sha256', $_SESSION['csrf_nonce'], $appKey);
+    }
+
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
@@ -44,10 +53,18 @@ function verify_csrf(): void
 {
     start_secure_session();
     $token = $_POST['csrf_token'] ?? '';
-    if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
-        http_response_code(422);
-        exit('Invalid CSRF token.');
+    $appKey = trim((string) (app_config()['app_key'] ?? ''));
+    if ($appKey !== '' && !empty($_SESSION['csrf_nonce'])) {
+        $expected = $_SESSION['csrf_nonce'] . '.' . hash_hmac('sha256', $_SESSION['csrf_nonce'], $appKey);
+        if (hash_equals($expected, $token)) {
+            return;
+        }
+    } elseif (hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+        return;
     }
+
+    http_response_code(422);
+    exit('Invalid CSRF token.');
 }
 
 function current_user(): ?array
@@ -452,7 +469,7 @@ function sports_events(): array
         return [];
     }
 
-    return db()->query('SELECT * FROM sports_events ORDER BY FIELD(status, "live", "upcoming", "finished"), starts_at ASC LIMIT 12')->fetchAll();
+    return db()->query('SELECT * FROM sports_events ORDER BY FIELD(status, "live", "upcoming", "finished"), CASE WHEN status = "finished" THEN starts_at END DESC, CASE WHEN status <> "finished" THEN starts_at END ASC LIMIT 12')->fetchAll();
 }
 
 function place_pick(int $userId, int $eventId, string $selection, int $stake): void
@@ -608,7 +625,7 @@ function setup_notice(): ?string
 {
     $issues = [];
     if (trim((string) (app_config()['app_key'] ?? '')) === '') {
-        $issues[] = 'Set APP_KEY in /config/config.php or the environment before going live.';
+        $issues[] = 'Set APP_KEY in /config/config.php or the environment to sign CSRF tokens before going live.';
     }
     if (!db_available()) {
         $issues[] = 'Database connection not configured yet. Update /config/config.php (or DB_* environment variables), import /database.sql, then refresh.';

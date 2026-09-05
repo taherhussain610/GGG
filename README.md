@@ -31,7 +31,7 @@ copy proprietary source code, branding, or protected assets.
 ## Hostinger setup
 1. Create a MySQL database in hPanel.
 2. Import `database.sql` with phpMyAdmin.
-3. Edit `config/config.php` with the database credentials and `APP_KEY`.
+3. Edit `config/config.php` with the database credentials and `APP_KEY` (used to sign CSRF tokens if you are not setting it via the environment).
 4. Upload the contents of this folder into `public_html`.
 5. Open `/register.php`.
 6. Make your account admin:

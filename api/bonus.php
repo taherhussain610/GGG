@@ -1,11 +1,15 @@
 <?php
 require __DIR__ . '/../includes/bootstrap.php';
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    require_login();
     $user = current_user();
     json_response([
-        'authenticated' => (bool) $user,
+        'authenticated' => true,
         'last_bonus_at' => $user['last_bonus_at'] ?? null,
     ]);
+}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    json_response(['ok' => false], 405);
 }
 require_login();
 verify_csrf();

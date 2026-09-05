@@ -1,6 +1,6 @@
 <?php
 
-$fileAppKey = '';
+$fileAppKey = ''; // Set this when environment variables are unavailable on your host.
 $appKey = getenv('APP_KEY') ?: $fileAppKey;
 
 return [
