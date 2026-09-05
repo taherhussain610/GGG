@@ -520,7 +520,7 @@ function provider_play_round(int $userId, string $token, int $bet, string $reque
             $session['id'],
             $roundId,
             $userId,
-            $requestId . ':bet',
+            $session['public_id'] . ':' . $requestId . ':bet',
             'bet',
             $bet,
             provider_json_summary(['round_id' => $requestId]),
@@ -529,7 +529,7 @@ function provider_play_round(int $userId, string $token, int $bet, string $reque
         $walletTx = $pdo->prepare("INSERT INTO wallet_transactions(
             user_id,provider_transaction_id,game_session_id,direction,amount,balance_before,balance_after,reason,idempotency_key
         ) VALUES(?,?,?,'debit',?,?,?,'provider_bet',?)");
-        $walletTx->execute([$userId, $betTransactionId, $session['id'], $bet, $balanceBefore, $balanceAfterBet, $requestId . ':wallet:bet']);
+        $walletTx->execute([$userId, $betTransactionId, $session['id'], $bet, $balanceBefore, $balanceAfterBet, $session['public_id'] . ':' . $requestId . ':wallet:bet']);
 
         if ((int) $outcome['payout'] > 0) {
             $providerTx->execute([
@@ -537,7 +537,7 @@ function provider_play_round(int $userId, string $token, int $bet, string $reque
                 $session['id'],
                 $roundId,
                 $userId,
-                $requestId . ':win',
+                $session['public_id'] . ':' . $requestId . ':win',
                 'win',
                 $outcome['payout'],
                 provider_json_summary(['round_id' => $requestId]),
@@ -546,7 +546,7 @@ function provider_play_round(int $userId, string $token, int $bet, string $reque
             $creditTx = $pdo->prepare("INSERT INTO wallet_transactions(
                 user_id,provider_transaction_id,game_session_id,direction,amount,balance_before,balance_after,reason,idempotency_key
             ) VALUES(?,?,?,'credit',?,?,?,'provider_win',?)");
-            $creditTx->execute([$userId, $winTransactionId, $session['id'], $outcome['payout'], $balanceAfterBet, $balanceAfter, $requestId . ':wallet:win']);
+            $creditTx->execute([$userId, $winTransactionId, $session['id'], $outcome['payout'], $balanceAfterBet, $balanceAfter, $session['public_id'] . ':' . $requestId . ':wallet:win']);
         }
 
         $history = $pdo->prepare('INSERT INTO game_transactions(user_id,game,bet,payout,result) VALUES(?,?,?,?,?)');
@@ -652,7 +652,7 @@ function provider_handle_webhook(string $endpoint, string $body, array $headers)
         throw new ProviderRequestException('Unsupported webhook event.', 422);
     }
 
-    $requestId = 'webhook:' . $providerSlug . ':' . $eventId;
+    $requestId = 'webhook:' . hash('sha256', $providerSlug . ':' . $eventId);
     $pdo = db();
     $pdo->beginTransaction();
     try {

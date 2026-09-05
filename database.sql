@@ -123,13 +123,14 @@ CREATE TABLE game_sessions(
 CREATE TABLE game_rounds(
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  game_session_id BIGINT UNSIGNED NOT NULL,
- external_round_id VARCHAR(80) NOT NULL UNIQUE,
+ external_round_id VARCHAR(80) NOT NULL,
  bet BIGINT UNSIGNED NOT NULL,
  payout BIGINT UNSIGNED NOT NULL DEFAULT 0,
  result VARCHAR(500) NOT NULL,
  status ENUM('settled','void') NOT NULL DEFAULT 'settled',
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  settled_at DATETIME NOT NULL,
+ UNIQUE(game_session_id,external_round_id),
  INDEX(game_session_id,created_at),
  CONSTRAINT fk_rounds_session FOREIGN KEY(game_session_id) REFERENCES game_sessions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
