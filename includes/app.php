@@ -640,16 +640,19 @@ function recent_results(): array
         return ['sports' => [], 'casino' => []];
     }
 
-    $sports = array_map(
-        'decorate_sports_event',
-        db()->query("SELECT id, sport, league, home_team, away_team, starts_at, draw_odds, status, winner, result_summary
-            FROM sports_events
-            WHERE status = 'finished' OR starts_at <= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
-            ORDER BY starts_at DESC
-            LIMIT 8")->fetchAll()
+    $sports = array_filter(
+        array_map(
+            'decorate_sports_event',
+            db()->query("SELECT id, sport, league, home_team, away_team, starts_at, draw_odds, status, winner, result_summary
+                FROM sports_events
+                WHERE status = 'finished' OR starts_at <= NOW()
+                ORDER BY starts_at DESC
+                LIMIT 20")->fetchAll()
+        ),
+        static fn(array $event): bool => ($event['status'] ?? '') === 'finished'
     );
     $casino = db()->query('SELECT game, bet, payout, result, created_at FROM game_transactions ORDER BY created_at DESC LIMIT 12')->fetchAll();
-    return ['sports' => $sports, 'casino' => $casino];
+    return ['sports' => array_slice(array_values($sports), 0, 8), 'casino' => $casino];
 }
 
 function user_history(int $userId): array
@@ -701,7 +704,7 @@ function setup_notice(): ?string
         return null;
     }
 
-    if (is_local_request()) {
+    if (!empty(app_config()['debug'])) {
         return implode(' ', $issues) . ' Update /config/config.php or the relevant environment variables, then import /database.sql.';
     }
 

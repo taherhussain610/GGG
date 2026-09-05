@@ -2,6 +2,7 @@
 
 $fileAppKey = ''; // Set this when environment variables are unavailable on your host.
 $appKey = getenv('APP_KEY') ?: $fileAppKey;
+$debug = (getenv('APP_DEBUG') === '1');
 
 return [
     'db_host' => getenv('DB_HOST') ?: '',
@@ -10,4 +11,5 @@ return [
     'db_pass' => getenv('DB_PASS') ?: '',
     'app_key' => $appKey,
     'app_name' => 'Neon Royale',
+    'debug' => $debug,
 ];

@@ -14,5 +14,4 @@ foreach ($events as $event) {
 json_response([
     'live_count' => $live,
     'upcoming_count' => $upcoming,
-    'events' => $events,
-]);
+    ] + (isset($_GET['details']) ? ['events' => $events] : []));
