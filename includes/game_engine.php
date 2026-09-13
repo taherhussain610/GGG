@@ -166,15 +166,21 @@ final class GameEngine
         $natural = count($player) === 2 && $playerTotal === 21;
         $dealerNatural = count($dealer) === 2 && $dealerTotal === 21;
 
-        if ($playerTotal > 21 || ($dealerTotal <= 21 && $dealerTotal > $playerTotal)) {
+        if ($playerTotal > 21) {
             $outcome = 'Dealer wins';
+            $payout = 0;
+        } elseif ($natural && !$dealerNatural) {
+            $outcome = 'Blackjack';
+            $payout = intdiv($bet * 5, 2);
+        } elseif ($dealerNatural && !$natural) {
+            $outcome = 'Dealer blackjack';
             $payout = 0;
         } elseif ($playerTotal === $dealerTotal) {
             $outcome = 'Push';
             $payout = $bet;
-        } elseif ($natural && !$dealerNatural) {
-            $outcome = 'Blackjack';
-            $payout = intdiv($bet * 5, 2);
+        } elseif ($dealerTotal <= 21 && $dealerTotal > $playerTotal) {
+            $outcome = 'Dealer wins';
+            $payout = 0;
         } else {
             $outcome = 'Player wins';
             $payout = $bet * 2;

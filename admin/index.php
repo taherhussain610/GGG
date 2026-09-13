@@ -36,8 +36,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $update->execute([$amount, $targetId]);
                 add_wallet_entry($pdo, $targetId, $amount, 'admin_adjustment', 'admin', (int) $admin['id']);
                 $audit = $pdo->prepare(
-                    'INSERT INTO admin_audit(admin_user_id, action, target_type, target_id, details)
-                     VALUES(?, "balance_adjustment", "user", ?, ?)'
+                    "INSERT INTO admin_audit(admin_user_id, action, target_type, target_id, details)
+                     VALUES(?, 'balance_adjustment', 'user', ?, ?)"
                 );
                 $audit->execute([
                     (int) $admin['id'],
@@ -74,8 +74,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $update = $pdo->prepare('UPDATE users SET is_suspended = ? WHERE id = ?');
                 $update->execute([$newState, $targetId]);
                 $audit = $pdo->prepare(
-                    'INSERT INTO admin_audit(admin_user_id, action, target_type, target_id, details)
-                     VALUES(?, ?, "user", ?, ?)'
+                    "INSERT INTO admin_audit(admin_user_id, action, target_type, target_id, details)
+                     VALUES(?, ?, 'user', ?, ?)"
                 );
                 $audit->execute([
                     (int) $admin['id'],
@@ -91,6 +91,94 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 }
                 throw $exception;
             }
+            redirect('/admin/');
+        }
+
+        if ($action === 'create_event') {
+            $sport = trim((string) ($_POST['sport'] ?? ''));
+            $league = trim((string) ($_POST['league'] ?? ''));
+            $homeTeam = trim((string) ($_POST['home_team'] ?? ''));
+            $awayTeam = trim((string) ($_POST['away_team'] ?? ''));
+            $startInput = trim((string) ($_POST['starts_at'] ?? ''));
+            $homeOdds = filter_var($_POST['home_odds'] ?? null, FILTER_VALIDATE_FLOAT);
+            $awayOdds = filter_var($_POST['away_odds'] ?? null, FILTER_VALIDATE_FLOAT);
+            $drawInput = trim((string) ($_POST['draw_odds'] ?? ''));
+            $drawOdds = $drawInput === '' ? null : filter_var($drawInput, FILTER_VALIDATE_FLOAT);
+
+            if (strlen($sport) < 2 || strlen($sport) > 30) {
+                throw new DomainException('Sport must be between 2 and 30 characters.');
+            }
+            foreach ([$league, $homeTeam, $awayTeam] as $label) {
+                if (strlen($label) < 2 || strlen($label) > 100) {
+                    throw new DomainException('League and team names must be between 2 and 100 characters.');
+                }
+            }
+            if (
+                $homeTeam === $awayTeam
+                || $homeOdds === false
+                || $awayOdds === false
+                || $homeOdds < 1.01
+                || $homeOdds > 100
+                || $awayOdds < 1.01
+                || $awayOdds > 100
+                || ($drawOdds !== null && ($drawOdds === false || $drawOdds < 1.01 || $drawOdds > 100))
+            ) {
+                throw new DomainException('Enter distinct teams and decimal odds from 1.01 to 100.');
+            }
+
+            $start = DateTimeImmutable::createFromFormat(
+                '!Y-m-d\TH:i',
+                $startInput,
+                new DateTimeZone('UTC')
+            );
+            if (
+                $start === false
+                || $start->format('Y-m-d\TH:i') !== $startInput
+                || $start->getTimestamp() < time() + 60
+                || $start->getTimestamp() > time() + 31536000
+            ) {
+                throw new DomainException('Start time must be 1 minute to 1 year in the future, in UTC.');
+            }
+
+            $pdo->beginTransaction();
+            try {
+                $insertEvent = $pdo->prepare(
+                    'INSERT INTO sports_events(
+                        sport, league, home_team, away_team, starts_at,
+                        home_odds, draw_odds, away_odds, status
+                     ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                );
+                $insertEvent->execute([
+                    $sport,
+                    $league,
+                    $homeTeam,
+                    $awayTeam,
+                    $start->format('Y-m-d H:i:s'),
+                    number_format((float) $homeOdds, 2, '.', ''),
+                    $drawOdds === null ? null : number_format((float) $drawOdds, 2, '.', ''),
+                    number_format((float) $awayOdds, 2, '.', ''),
+                    'upcoming',
+                ]);
+                $eventId = (int) $pdo->lastInsertId();
+                $audit = $pdo->prepare(
+                    'INSERT INTO admin_audit(admin_user_id, action, target_type, target_id, details)
+                     VALUES(?, ?, ?, ?, ?)'
+                );
+                $audit->execute([
+                    (int) $admin['id'],
+                    'create_event',
+                    'sports_event',
+                    $eventId,
+                    json_encode(['sport' => $sport, 'starts_at' => $start->format(DATE_ATOM)], JSON_THROW_ON_ERROR),
+                ]);
+                $pdo->commit();
+            } catch (Throwable $exception) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $exception;
+            }
+            flash('success', 'Virtual sports event created.');
             redirect('/admin/');
         }
 
@@ -111,32 +199,42 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             ) {
                 throw new DomainException('Enter a valid winner and final score.');
             }
+            if (
+                ($winner === 'draw' && $homeScore !== $awayScore)
+                || ($winner === 'home' && $homeScore <= $awayScore)
+                || ($winner === 'away' && $awayScore <= $homeScore)
+            ) {
+                throw new DomainException('The final score must agree with the winning selection.');
+            }
 
             $pdo->beginTransaction();
             try {
                 $eventStatement = $pdo->prepare(
-                    'SELECT status FROM sports_events WHERE id = ? FOR UPDATE'
+                    'SELECT status, draw_odds FROM sports_events WHERE id = ? FOR UPDATE'
                 );
                 $eventStatement->execute([$eventId]);
                 $event = $eventStatement->fetch();
                 if ($event === false || $event['status'] === 'finished' || $event['status'] === 'cancelled') {
                     throw new DomainException('This event cannot be settled again.');
                 }
+                if ($winner === 'draw' && $event['draw_odds'] === null) {
+                    throw new DomainException('A draw is not available for this two-outcome event.');
+                }
 
                 $pickStatement = $pdo->prepare(
-                    'SELECT id, user_id, selection, potential_win
+                    "SELECT id, user_id, selection, potential_win
                      FROM sports_picks
-                     WHERE event_id = ? AND status = "open"
+                     WHERE event_id = ? AND status = 'open'
                      ORDER BY user_id, id
-                     FOR UPDATE'
+                     FOR UPDATE"
                 );
                 $pickStatement->execute([$eventId]);
                 $picks = $pickStatement->fetchAll();
 
                 $eventUpdate = $pdo->prepare(
-                    'UPDATE sports_events
-                     SET status = "finished", result_selection = ?, home_score = ?, away_score = ?
-                     WHERE id = ?'
+                    "UPDATE sports_events
+                     SET status = 'finished', result_selection = ?, home_score = ?, away_score = ?
+                     WHERE id = ?"
                 );
                 $eventUpdate->execute([$winner, $homeScore, $awayScore, $eventId]);
 
@@ -163,8 +261,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 }
 
                 $audit = $pdo->prepare(
-                    'INSERT INTO admin_audit(admin_user_id, action, target_type, target_id, details)
-                     VALUES(?, "settle_event", "sports_event", ?, ?)'
+                    "INSERT INTO admin_audit(admin_user_id, action, target_type, target_id, details)
+                     VALUES(?, 'settle_event', 'sports_event', ?, ?)"
                 );
                 $audit->execute([
                     (int) $admin['id'],
@@ -188,6 +286,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         throw new DomainException('Unknown administrator action.');
     } catch (DomainException $exception) {
+        if ($exception instanceof HttpException) {
+            http_response_code($exception->status);
+        }
         $error = $exception->getMessage();
     }
 }
@@ -198,27 +299,27 @@ $userStats = db()->query(
      FROM users'
 )->fetch();
 $gameStats = db()->query(
-    'SELECT COUNT(*) AS rounds, COALESCE(SUM(bet), 0) AS staked,
+    "SELECT COUNT(*) AS rounds, COALESCE(SUM(bet), 0) AS staked,
             COALESCE(SUM(payout), 0) AS paid
-     FROM game_transactions WHERE status = "complete"'
+     FROM game_transactions WHERE status = 'complete'"
 )->fetch();
 $bonusTotal = (int) db()->query(
-    'SELECT COALESCE(SUM(amount), 0) FROM wallet_transactions WHERE type = "daily_bonus"'
+    "SELECT COALESCE(SUM(amount), 0) FROM wallet_transactions WHERE type = 'daily_bonus'"
 )->fetchColumn();
 $users = db()->query(
     'SELECT id, username, email, balance, xp, level, is_admin, is_suspended, created_at
      FROM users ORDER BY created_at DESC LIMIT 50'
 )->fetchAll();
 $events = db()->query(
-    'SELECT id, sport, league, home_team, away_team, starts_at, status
-     FROM sports_events WHERE status IN ("upcoming", "live")
-     ORDER BY starts_at LIMIT 30'
+    "SELECT id, sport, league, home_team, away_team, starts_at, status, draw_odds
+     FROM sports_events WHERE status IN ('upcoming', 'live')
+     ORDER BY starts_at LIMIT 30"
 )->fetchAll();
 $gameBreakdown = db()->query(
-    'SELECT game, COUNT(*) AS rounds, COALESCE(SUM(bet), 0) AS staked,
+    "SELECT game, COUNT(*) AS rounds, COALESCE(SUM(bet), 0) AS staked,
             COALESCE(SUM(payout), 0) AS paid
-     FROM game_transactions WHERE status = "complete"
-     GROUP BY game ORDER BY rounds DESC'
+     FROM game_transactions WHERE status = 'complete'
+     GROUP BY game ORDER BY rounds DESC"
 )->fetchAll();
 $audits = db()->query(
     'SELECT a.action, a.target_type, a.target_id, a.details, a.created_at, u.username
@@ -299,6 +400,23 @@ require ROOT_PATH . '/partials/header.php';
 
 <section class="page-shell admin-grid">
     <div class="panel admin-section">
+        <div class="section-heading compact"><div><p class="eyebrow">New simulation</p><h2>Create event</h2></div></div>
+        <form method="post" class="event-create-form">
+            <?= csrf_input() ?>
+            <input type="hidden" name="action" value="create_event">
+            <label>Sport<input name="sport" minlength="2" maxlength="30" placeholder="Football" required></label>
+            <label>League<input name="league" minlength="2" maxlength="100" placeholder="Virtual Cup" required></label>
+            <label>Home team<input name="home_team" minlength="2" maxlength="100" required></label>
+            <label>Away team<input name="away_team" minlength="2" maxlength="100" required></label>
+            <label>Starts at (UTC)<input type="datetime-local" name="starts_at" required></label>
+            <label>Home odds<input type="number" name="home_odds" min="1.01" max="100" step="0.01" value="1.90" required></label>
+            <label>Draw odds <small>optional</small><input type="number" name="draw_odds" min="1.01" max="100" step="0.01"></label>
+            <label>Away odds<input type="number" name="away_odds" min="1.01" max="100" step="0.01" value="1.90" required></label>
+            <button class="button button-primary" type="submit">Create virtual event</button>
+        </form>
+    </div>
+
+    <div class="panel admin-section">
         <div class="section-heading compact"><div><p class="eyebrow">Simulation</p><h2>Settle events</h2></div></div>
         <?php if ($events === []): ?>
             <p class="empty-state">No open events.</p>
@@ -314,7 +432,7 @@ require ROOT_PATH . '/partials/header.php';
                 </div>
                 <select name="winner" required aria-label="Winning selection">
                     <option value="home">Home</option>
-                    <option value="draw">Draw</option>
+                    <?php if ($event['draw_odds'] !== null): ?><option value="draw">Draw</option><?php endif; ?>
                     <option value="away">Away</option>
                 </select>
                 <input type="number" name="home_score" min="0" max="999" value="1" required aria-label="Home score">
@@ -325,7 +443,7 @@ require ROOT_PATH . '/partials/header.php';
         <?php endforeach; ?>
     </div>
 
-    <div class="panel admin-section">
+    <div class="panel admin-section admin-game-metrics">
         <div class="section-heading compact"><div><p class="eyebrow">Game metrics</p><h2>Performance</h2></div></div>
         <div class="history-list">
             <?php foreach ($gameBreakdown as $row): ?>

@@ -34,7 +34,7 @@ $games = [
         'description' => 'The server plays both hands to 17. Highest total up to 21 wins; equal totals push.',
         'button' => 'Deal round',
         'visual' => ['A♠', 'K♦', '21'],
-        'rules' => ['Win: 2×', 'Natural blackjack: 2.5×', 'Push: stake returned', 'Dealer stands on 17'],
+        'rules' => ['Win: 2×', 'Natural blackjack: 2.5×', 'Push: stake returned', 'Twin naturals: jackpot'],
     ],
     'dice' => [
         'title' => 'Pulse Dice',
@@ -64,9 +64,9 @@ $pendingPoker = null;
 $pendingHand = [];
 if ($gameKey === 'poker') {
     $statement = db()->prepare(
-        'SELECT id, bet, state_json FROM game_transactions
-         WHERE user_id = ? AND game = "poker" AND status = "pending"
-         ORDER BY id DESC LIMIT 1'
+        "SELECT id, bet, state_json FROM game_transactions
+         WHERE user_id = ? AND game = 'poker' AND status = 'pending'
+         ORDER BY id DESC LIMIT 1"
     );
     $statement->execute([(int) $user['id']]);
     $pendingPoker = $statement->fetch();

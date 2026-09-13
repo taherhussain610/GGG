@@ -1259,6 +1259,16 @@ label small {
     margin: 0;
 }
 
+.closed-market {
+    padding: .8rem;
+    margin: 0;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: .8rem;
+    text-align: center;
+}
+
 .sports-sidebar .panel {
     padding: 1.3rem;
 }
@@ -1733,6 +1743,20 @@ progress::-moz-progress-bar {
     padding-bottom: 0;
 }
 
+.event-create-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .8rem;
+}
+
+.event-create-form .button {
+    grid-column: 1 / -1;
+}
+
+.admin-game-metrics {
+    grid-column: 1 / -1;
+}
+
 .admin-inline-form {
     display: grid;
     grid-template-columns: 90px 150px auto;
@@ -1888,6 +1912,14 @@ progress::-moz-progress-bar {
 
     .auth-shell {
         padding-block: 3rem;
+    }
+
+    .event-create-form {
+        grid-template-columns: 1fr;
+    }
+
+    .event-create-form .button {
+        grid-column: auto;
     }
 
     .auth-promo {

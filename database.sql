@@ -103,6 +103,13 @@ CREATE TABLE IF NOT EXISTS admin_audit (
     CONSTRAINT fk_audit_admin FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS rate_limits (
+    bucket CHAR(64) PRIMARY KEY,
+    attempts INT UNSIGNED NOT NULL DEFAULT 1,
+    window_started_at DATETIME NOT NULL,
+    INDEX idx_rate_window (window_started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO jackpots(game, balance, seed_amount) VALUES
 ('slots', 250000, 250000),
 ('roulette', 125000, 125000),

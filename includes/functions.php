@@ -2,6 +2,14 @@
 
 declare(strict_types=1);
 
+final class HttpException extends DomainException
+{
+    public function __construct(string $message, public readonly int $status)
+    {
+        parent::__construct($message);
+    }
+}
+
 function db(): PDO
 {
     static $connection = null;
@@ -65,7 +73,7 @@ function verify_csrf(): void
 {
     $provided = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? '';
     if (!is_string($provided) || !hash_equals(csrf_token(), $provided)) {
-        throw new DomainException('Your session token expired. Refresh the page and try again.');
+        throw new HttpException('Your session token expired. Refresh the page and try again.', 403);
     }
 }
 
@@ -186,9 +194,12 @@ function request_json(): array
         json_response(['ok' => false, 'error' => 'Request body is too large.'], 413);
     }
 
-    $raw = file_get_contents('php://input');
+    $raw = file_get_contents('php://input', false, null, 0, 32769);
     if ($raw === false || $raw === '') {
         return $_POST;
+    }
+    if (strlen($raw) > 32768) {
+        json_response(['ok' => false, 'error' => 'Request body is too large.'], 413);
     }
 
     try {
@@ -216,22 +227,46 @@ function require_post(): void
     }
 }
 
-function rate_limit(string $action, int $limit, int $windowSeconds): void
+function rate_limit(string $action, int $limit, int $windowSeconds, bool $includeIp = true): void
 {
-    $now = time();
-    $key = hash_hmac('sha256', $action . '|' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'), APP_KEY);
-    $attempts = $_SESSION['rate_limits'][$key] ?? [];
-    $attempts = array_values(array_filter(
-        is_array($attempts) ? $attempts : [],
-        static fn ($timestamp): bool => is_int($timestamp) && $timestamp > $now - $windowSeconds
-    ));
+    $windowSeconds = max(1, $windowSeconds);
+    $identity = $includeIp
+        ? $action . '|' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown')
+        : $action;
+    $key = hash_hmac(
+        'sha256',
+        $identity,
+        APP_KEY
+    );
+    $sql = sprintf(
+        "INSERT INTO rate_limits(bucket, attempts, window_started_at)
+         VALUES(?, 1, UTC_TIMESTAMP())
+         ON DUPLICATE KEY UPDATE
+            attempts = IF(
+                window_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d SECOND),
+                1,
+                LEAST(attempts + 1, 2147483647)
+            ),
+            window_started_at = IF(
+                window_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d SECOND),
+                UTC_TIMESTAMP(),
+                window_started_at
+            )",
+        $windowSeconds,
+        $windowSeconds
+    );
+    $statement = db()->prepare($sql);
+    $statement->execute([$key]);
 
-    if (count($attempts) >= $limit) {
-        throw new DomainException('Too many attempts. Please wait and try again.');
+    $check = db()->prepare('SELECT attempts FROM rate_limits WHERE bucket = ?');
+    $check->execute([$key]);
+    if ((int) $check->fetchColumn() > $limit) {
+        throw new HttpException('Too many attempts. Please wait and try again.', 429);
     }
 
-    $attempts[] = $now;
-    $_SESSION['rate_limits'][$key] = $attempts;
+    if (random_int(1, 100) === 1) {
+        db()->exec('DELETE FROM rate_limits WHERE window_started_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)');
+    }
 }
 
 function format_credits(int|string $amount): string

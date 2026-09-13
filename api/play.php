@@ -70,9 +70,9 @@ try {
     }
 
     $insert = $pdo->prepare(
-        'INSERT INTO game_transactions(
+        "INSERT INTO game_transactions(
             user_id, game, bet, payout, result, status, xp_awarded, completed_at
-         ) VALUES(?, ?, ?, ?, ?, "complete", ?, UTC_TIMESTAMP())'
+         ) VALUES(?, ?, ?, ?, ?, 'complete', ?, UTC_TIMESTAMP())"
     );
     $insert->execute([
         (int) $user['id'],

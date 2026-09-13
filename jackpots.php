@@ -33,7 +33,9 @@ require ROOT_PATH . '/partials/header.php';
         <article class="jackpot-card">
             <span><?= e($gameNames[$jackpot['game']] ?? ucfirst($jackpot['game'])) ?></span>
             <strong><?= e(format_credits($jackpot['balance'])) ?></strong>
-            <progress max="100" value="<?= min(100, (int) round(((int) $jackpot['balance'] / max(1, (int) $jackpot['seed_amount'])) * 35)) ?>">
+            <progress max="100"
+                      value="<?= min(100, (int) round(((int) $jackpot['balance'] / max(1, (int) $jackpot['seed_amount'])) * 35)) ?>"
+                      aria-label="<?= e(($gameNames[$jackpot['game']] ?? ucfirst($jackpot['game'])) . ' jackpot growth') ?>">
                 Jackpot growth
             </progress>
             <?php if ($jackpot['winner'] !== null): ?>

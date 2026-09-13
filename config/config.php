@@ -17,5 +17,9 @@ define('DB_PASS', config_env('DB_PASS', ''));
 define('APP_KEY', config_env('APP_KEY', 'change-this-development-key-before-launch'));
 define('APP_URL', rtrim(config_env('APP_URL', ''), '/'));
 define('APP_ENV', config_env('APP_ENV', 'development'));
+define(
+    'TRUST_PROXY_HEADERS',
+    filter_var(config_env('TRUST_PROXY_HEADERS', 'false'), FILTER_VALIDATE_BOOL)
+);
 
 date_default_timezone_set('UTC');

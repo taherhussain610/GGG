@@ -22,9 +22,9 @@ $walletStatement->execute([(int) $user['id']]);
 $walletHistory = $walletStatement->fetchAll();
 
 $statsStatement = db()->prepare(
-    'SELECT COUNT(*) AS rounds, COALESCE(SUM(bet), 0) AS played,
+    "SELECT COUNT(*) AS rounds, COALESCE(SUM(bet), 0) AS played,
             COALESCE(SUM(payout), 0) AS returned
-     FROM game_transactions WHERE user_id = ? AND status = "complete"'
+     FROM game_transactions WHERE user_id = ? AND status = 'complete'"
 );
 $statsStatement->execute([(int) $user['id']]);
 $stats = $statsStatement->fetch();
@@ -42,7 +42,7 @@ require ROOT_PATH . '/partials/header.php';
     </div>
     <div class="level-progress">
         <div><span>Level <?= (int) $user['level'] ?></span><strong><?= number_format((int) $user['xp']) ?> XP</strong></div>
-        <progress max="1000" value="<?= (int) $user['xp'] % 1000 ?>">Level progress</progress>
+        <progress max="1000" value="<?= (int) $user['xp'] % 1000 ?>" aria-label="Progress to next level">Level progress</progress>
         <small><?= number_format(1000 - ((int) $user['xp'] % 1000)) ?> XP to next level</small>
     </div>
 </section>

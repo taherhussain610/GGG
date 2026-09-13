@@ -60,6 +60,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         flash('success', 'Welcome to Neon Royale. Your 10,000 free credits are ready.');
         redirect('/casino.php');
     } catch (DomainException $exception) {
+        if ($exception instanceof HttpException) {
+            http_response_code($exception->status);
+        }
         $error = $exception->getMessage();
     }
 }

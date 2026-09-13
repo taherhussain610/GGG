@@ -29,7 +29,8 @@ included.
 2. Import `database.sql` into that database with phpMyAdmin.
 3. Edit `config/config.php` or provide the corresponding environment variables:
    `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `APP_KEY`, `APP_URL`, and
-   `APP_ENV`.
+   `APP_ENV`. Set `TRUST_PROXY_HEADERS=true` only when your trusted hosting
+   proxy overwrites `X-Forwarded-Proto`.
 4. Set `APP_KEY` to a unique random value of at least 32 characters.
 5. Upload the repository contents to `public_html`.
 6. Select PHP 8.3 or newer and enable PDO MySQL and sessions.
@@ -39,8 +40,9 @@ included.
    UPDATE users SET is_admin = 1 WHERE email = 'you@example.com';
    ```
 
-8. Enable HTTPS. The included `.htaccess` redirects to HTTPS when
-   `APP_ENV=production` is set through the server environment.
+8. Set `APP_URL` to the full HTTPS origin and `APP_ENV=production`. Dynamic
+   requests then enforce HTTPS; also enable Hostinger's force-HTTPS option so
+   static assets are redirected at the web-server edge.
 
 No Composer packages, Node process, cron job, or WebSocket server is required.
 

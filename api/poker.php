@@ -30,8 +30,8 @@ if ($action === 'deal') {
         }
 
         $pending = $pdo->prepare(
-            'SELECT id FROM game_transactions
-             WHERE user_id = ? AND game = "poker" AND status = "pending" LIMIT 1 FOR UPDATE'
+            "SELECT id FROM game_transactions
+             WHERE user_id = ? AND game = 'poker' AND status = 'pending' LIMIT 1 FOR UPDATE"
         );
         $pending->execute([(int) $user['id']]);
         if ($pending->fetch() !== false) {
@@ -46,12 +46,12 @@ if ($action === 'deal') {
         $updateUser = $pdo->prepare('UPDATE users SET balance = ?, xp = ?, level = ? WHERE id = ?');
         $updateUser->execute([$newBalance, $newXp, level_from_xp($newXp), (int) $user['id']]);
 
-        $jackpot = $pdo->prepare('UPDATE jackpots SET balance = balance + ? WHERE game = "poker"');
+        $jackpot = $pdo->prepare("UPDATE jackpots SET balance = balance + ? WHERE game = 'poker'");
         $jackpot->execute([max(1, intdiv($bet, 100))]);
 
         $insert = $pdo->prepare(
-            'INSERT INTO game_transactions(user_id, game, bet, result, state_json, status, xp_awarded)
-             VALUES(?, "poker", ?, "Awaiting draw", ?, "pending", ?)'
+            "INSERT INTO game_transactions(user_id, game, bet, result, state_json, status, xp_awarded)
+             VALUES(?, 'poker', ?, 'Awaiting draw', ?, 'pending', ?)"
         );
         $insert->execute([
             (int) $user['id'],
@@ -97,9 +97,9 @@ try {
     $wallet = $userStatement->fetch();
 
     $roundStatement = $pdo->prepare(
-        'SELECT id, bet, state_json FROM game_transactions
-         WHERE id = ? AND user_id = ? AND game = "poker" AND status = "pending"
-         FOR UPDATE'
+        "SELECT id, bet, state_json FROM game_transactions
+         WHERE id = ? AND user_id = ? AND game = 'poker' AND status = 'pending'
+         FOR UPDATE"
     );
     $roundStatement->execute([$roundId, (int) $user['id']]);
     $round = $roundStatement->fetch();
@@ -117,15 +117,15 @@ try {
 
     if ($result['jackpot']) {
         $jackpotStatement = $pdo->query(
-            'SELECT balance, seed_amount FROM jackpots WHERE game = "poker" FOR UPDATE'
+            "SELECT balance, seed_amount FROM jackpots WHERE game = 'poker' FOR UPDATE"
         );
         $jackpot = $jackpotStatement->fetch();
         if ($jackpot !== false) {
             $jackpotWin = (int) $jackpot['balance'];
             $updateJackpot = $pdo->prepare(
-                'UPDATE jackpots
+                "UPDATE jackpots
                  SET balance = seed_amount, winner_user_id = ?, won_at = UTC_TIMESTAMP()
-                 WHERE game = "poker"'
+                 WHERE game = 'poker'"
             );
             $updateJackpot->execute([(int) $user['id']]);
         }
@@ -142,9 +142,9 @@ try {
     $updateUser = $pdo->prepare('UPDATE users SET balance = ? WHERE id = ?');
     $updateUser->execute([$newBalance, (int) $user['id']]);
     $updateRound = $pdo->prepare(
-        'UPDATE game_transactions
-         SET payout = ?, result = ?, state_json = NULL, status = "complete", completed_at = UTC_TIMESTAMP()
-         WHERE id = ?'
+        "UPDATE game_transactions
+         SET payout = ?, result = ?, state_json = NULL, status = 'complete', completed_at = UTC_TIMESTAMP()
+         WHERE id = ?"
     );
     $updateRound->execute([
         $payout,

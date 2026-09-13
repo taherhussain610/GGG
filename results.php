@@ -5,12 +5,12 @@ declare(strict_types=1);
 require __DIR__ . '/includes/bootstrap.php';
 
 $statement = db()->query(
-    'SELECT id, sport, league, home_team, away_team, starts_at,
+    "SELECT id, sport, league, home_team, away_team, starts_at,
             result_selection, home_score, away_score
      FROM sports_events
-     WHERE status = "finished"
+     WHERE status = 'finished'
      ORDER BY starts_at DESC
-     LIMIT 100'
+     LIMIT 100"
 );
 $results = $statement->fetchAll();
 

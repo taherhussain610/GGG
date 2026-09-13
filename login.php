@@ -12,7 +12,7 @@ $returnPath = safe_return_path(isset($_GET['return']) ? (string) $_GET['return']
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
         verify_csrf();
-        rate_limit('login', 8, 900);
+        rate_limit('login-ip', 30, 900);
         $email = strtolower(trim((string) ($_POST['email'] ?? '')));
         $password = (string) ($_POST['password'] ?? '');
         $returnPath = safe_return_path(isset($_POST['return']) ? (string) $_POST['return'] : null);
@@ -22,6 +22,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         );
         $statement->execute([$email]);
         $record = $statement->fetch();
+        if ($record !== false) {
+            rate_limit('login-account:' . (int) $record['id'], 8, 900, false);
+        }
 
         if (
             $record === false
@@ -40,6 +43,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         login_user((int) $record['id']);
         redirect($returnPath);
     } catch (DomainException $exception) {
+        if ($exception instanceof HttpException) {
+            http_response_code($exception->status);
+        }
         $error = $exception->getMessage();
     }
 }

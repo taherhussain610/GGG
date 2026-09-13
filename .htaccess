@@ -4,10 +4,7 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    RewriteCond %{HTTPS} !=on
-    RewriteCond %{ENV:APP_ENV} =production
-    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
-
+    RewriteRule ^(?:config|includes|partials|legal|storage|tests)(?:/|$) - [F,L]
     RewriteRule ^casino/-1/?$ casino.php [L,QSA]
     RewriteRule ^casino/-1/(196|189|188|1023)/?$ casino.php?category=$1 [L,QSA]
     RewriteRule ^sports/?$ sports.php [L,QSA]

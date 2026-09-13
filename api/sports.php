@@ -10,12 +10,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
 }
 
 $statement = db()->query(
-    'SELECT id, sport, league, home_team, away_team, starts_at,
+    "SELECT id, sport, league, home_team, away_team, starts_at,
             home_odds, draw_odds, away_odds, status
      FROM sports_events
-     WHERE status IN ("upcoming", "live")
-     ORDER BY FIELD(status, "live", "upcoming"), starts_at
-     LIMIT 50'
+     WHERE status IN ('upcoming', 'live')
+     ORDER BY FIELD(status, 'live', 'upcoming'), starts_at
+     LIMIT 50"
 );
 $events = array_map(static function (array $event): array {
     return [

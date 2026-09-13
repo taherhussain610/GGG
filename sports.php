@@ -5,12 +5,12 @@ declare(strict_types=1);
 require __DIR__ . '/includes/bootstrap.php';
 
 $statement = db()->query(
-    'SELECT id, sport, league, home_team, away_team, starts_at,
+    "SELECT id, sport, league, home_team, away_team, starts_at,
             home_odds, draw_odds, away_odds, status
      FROM sports_events
-     WHERE status IN ("upcoming", "live")
-     ORDER BY FIELD(status, "live", "upcoming"), starts_at
-     LIMIT 50'
+     WHERE status IN ('upcoming', 'live')
+     ORDER BY FIELD(status, 'live', 'upcoming'), starts_at
+     LIMIT 50"
 );
 $events = $statement->fetchAll();
 $sports = array_values(array_unique(array_column($events, 'sport')));
@@ -47,6 +47,10 @@ require ROOT_PATH . '/partials/header.php';
                 <div class="empty-state">No virtual events are open right now. Check results for completed fixtures.</div>
             <?php endif; ?>
             <?php foreach ($events as $event): ?>
+                <?php
+                $acceptsPicks = $event['status'] === 'upcoming'
+                    && strtotime((string) $event['starts_at']) > time();
+                ?>
                 <article class="event-card" data-sport-card="<?= e(strtolower($event['sport'])) ?>">
                     <header>
                         <div>
@@ -62,38 +66,44 @@ require ROOT_PATH . '/partials/header.php';
                         <span>VS</span>
                         <strong><?= e($event['away_team']) ?></strong>
                     </div>
-                    <form class="pick-form" data-pick-form>
-                        <input type="hidden" name="event_id" value="<?= (int) $event['id'] ?>">
-                        <fieldset>
-                            <legend>Your prediction</legend>
-                            <label>
-                                <input type="radio" name="selection" value="home" required>
-                                <span>Home <strong><?= e(number_format((float) $event['home_odds'], 2)) ?></strong></span>
-                            </label>
-                            <?php if ($event['draw_odds'] !== null): ?>
+                    <?php if ($acceptsPicks): ?>
+                        <form class="pick-form" data-pick-form>
+                            <input type="hidden" name="event_id" value="<?= (int) $event['id'] ?>">
+                            <fieldset>
+                                <legend>Your prediction</legend>
                                 <label>
-                                    <input type="radio" name="selection" value="draw" required>
-                                    <span>Draw <strong><?= e(number_format((float) $event['draw_odds'], 2)) ?></strong></span>
+                                    <input type="radio" name="selection" value="home" required>
+                                    <span>Home <strong><?= e(number_format((float) $event['home_odds'], 2)) ?></strong></span>
                                 </label>
-                            <?php endif; ?>
-                            <label>
-                                <input type="radio" name="selection" value="away" required>
-                                <span>Away <strong><?= e(number_format((float) $event['away_odds'], 2)) ?></strong></span>
-                            </label>
-                        </fieldset>
-                        <div class="pick-submit">
-                            <label>
-                                <span>Stake</span>
-                                <input type="number" name="stake" min="10" max="100000" step="10" value="100" required>
-                            </label>
-                            <?php if (current_user() === null): ?>
-                                <a class="button button-primary" href="<?= e(url('/login.php?return=/sports.php')) ?>">Log in to predict</a>
-                            <?php else: ?>
-                                <button class="button button-primary" type="submit">Place prediction</button>
-                            <?php endif; ?>
-                        </div>
-                        <p class="form-feedback" data-pick-feedback aria-live="polite"></p>
-                    </form>
+                                <?php if ($event['draw_odds'] !== null): ?>
+                                    <label>
+                                        <input type="radio" name="selection" value="draw" required>
+                                        <span>Draw <strong><?= e(number_format((float) $event['draw_odds'], 2)) ?></strong></span>
+                                    </label>
+                                <?php endif; ?>
+                                <label>
+                                    <input type="radio" name="selection" value="away" required>
+                                    <span>Away <strong><?= e(number_format((float) $event['away_odds'], 2)) ?></strong></span>
+                                </label>
+                            </fieldset>
+                            <div class="pick-submit">
+                                <label>
+                                    <span>Stake</span>
+                                    <input type="number" name="stake" min="10" max="100000" step="10" value="100" required>
+                                </label>
+                                <?php if (current_user() === null): ?>
+                                    <a class="button button-primary" href="<?= e(url('/login.php?return=/sports.php')) ?>">Log in to predict</a>
+                                <?php else: ?>
+                                    <button class="button button-primary" type="submit">Place prediction</button>
+                                <?php endif; ?>
+                            </div>
+                            <p class="form-feedback" data-pick-feedback aria-live="polite"></p>
+                        </form>
+                    <?php else: ?>
+                        <p class="closed-market">
+                            Predictions are closed. The final simulated result will appear on the Results page.
+                        </p>
+                    <?php endif; ?>
                 </article>
             <?php endforeach; ?>
         </div>
