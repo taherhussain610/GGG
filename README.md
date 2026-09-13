@@ -64,9 +64,8 @@ live wallet.
 - Configure HTTPS before exposing login pages.
 - Back up the database regularly and restrict phpMyAdmin access.
 - Review admin audit entries after balance changes and event settlements.
-- For a public launch, add email verification, password reset, 2FA for
-  administrators, database-backed rate limiting, monitoring, and an independent
-  security review.
+- For a public launch, add email verification, password reset, administrator
+  2FA, monitoring, and an independent security review.
 
 ## Compatibility note
 
