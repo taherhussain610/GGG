@@ -42,7 +42,7 @@ require ROOT_PATH . '/partials/header.php';
     </div>
     <div class="level-progress">
         <div><span>Level <?= (int) $user['level'] ?></span><strong><?= number_format((int) $user['xp']) ?> XP</strong></div>
-        <div class="meter"><span style="--meter: <?= ((int) $user['xp'] % 1000) / 10 ?>%"></span></div>
+        <progress max="1000" value="<?= (int) $user['xp'] % 1000 ?>">Level progress</progress>
         <small><?= number_format(1000 - ((int) $user['xp'] % 1000)) ?> XP to next level</small>
     </div>
 </section>

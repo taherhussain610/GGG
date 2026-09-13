@@ -31,9 +31,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             throw new DomainException('Email or password is incorrect.');
         }
 
-        if (password_needs_rehash($record['password_hash'], PASSWORD_DEFAULT)) {
+        $algorithm = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT;
+        if (password_needs_rehash($record['password_hash'], $algorithm)) {
             $update = db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
-            $update->execute([password_hash($password, PASSWORD_DEFAULT), (int) $record['id']]);
+            $update->execute([password_hash($password, $algorithm), (int) $record['id']]);
         }
 
         login_user((int) $record['id']);

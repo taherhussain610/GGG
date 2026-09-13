@@ -21,6 +21,7 @@ $navItems = [
     <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#080b14">
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
+    <meta name="app-base" content="<?= e(APP_URL) ?>">
     <meta name="description" content="Neon Royale is a free play-money casino with virtual credits and no cash prizes.">
     <title><?= e($pageTitle) ?> · Neon Royale</title>
     <link rel="stylesheet" href="<?= e(url('/assets/css/app.css')) ?>">

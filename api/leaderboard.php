@@ -16,6 +16,7 @@ $statement = db()->query(
      ORDER BY xp DESC, created_at ASC
      LIMIT 50'
 );
+$leaders = $statement->fetchAll();
 
 json_response([
     'ok' => true,
@@ -24,5 +25,5 @@ json_response([
         'username' => $leader['username'],
         'xp' => (int) $leader['xp'],
         'level' => (int) $leader['level'],
-    ], $statement->fetchAll(), array_keys($statement->fetchAll())),
+    ], $leaders, array_keys($leaders)),
 ]);
