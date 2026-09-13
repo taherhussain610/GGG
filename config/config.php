@@ -19,8 +19,3 @@ define('APP_URL', rtrim(config_env('APP_URL', ''), '/'));
 define('APP_ENV', config_env('APP_ENV', 'development'));
 
 date_default_timezone_set('UTC');
-
-$localConfig = __DIR__ . '/config.local.php';
-if (is_file($localConfig)) {
-    require $localConfig;
-}
