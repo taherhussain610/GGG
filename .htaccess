@@ -1,0 +1,21 @@
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteRule ^(?:config|includes|partials|legal|storage|tests)(?:/|$) - [F,L]
+    RewriteRule ^casino/-1/?$ casino.php [L,QSA]
+    RewriteRule ^casino/-1/(196|189|188|1023)/?$ casino.php?category=$1 [L,QSA]
+    RewriteRule ^sports/?$ sports.php [L,QSA]
+    RewriteRule ^results/?$ results.php [L,QSA]
+</IfModule>
+
+<FilesMatch "(^\.|config\.local\.php|\.sql$|\.log$)">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
