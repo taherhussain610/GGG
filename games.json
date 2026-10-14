@@ -1,0 +1,95 @@
+{
+  "$comment": "Server-side slot configuration. Everything in this file is authoritative and must never be shipped to the browser. Per-game odds, RTP and payout shapes live here only.",
+  "version": 1,
+  "defaultGameId": "golden-orchard",
+  "limits": {
+    "minBet": 1,
+    "maxBet": 250,
+    "maxBetFractionOfBalance": 0.5
+  },
+  "speedBands": {
+    "$comment": "Advanced integration: the wallets used by regulated aggregators (SOFTSWISS, Hub88, SlotMatrix, ...) mostly settle two speeds. BYTE floors every payout to an integer credit value. ADVANCED keeps fractional credits and is what integrators expect from a 'credit' wallet.",
+    "default": "ADVANCED",
+    "allowed": ["BYTE", "ADVANCED"]
+  },
+  "games": [
+    {
+      "id": "golden-orchard",
+      "name": "Golden Orchard",
+      "icon": "✺",
+      "subtitle": "Fruit reels · single middle line",
+      "provider": "Velvet Room",
+      "layout": { "rows": 3, "cols": 3, "paylines": [1] },
+      "hitRate": 0.05,
+      "speedBand": "ADVANCED",
+      "cost": 1,
+      "payouts": [
+        { "symbol": "cherry", "multiplier": 5, "weight": 0.35 },
+        { "symbol": "lemon", "multiplier": 10, "weight": 0.3 },
+        { "symbol": "grapes", "multiplier": 20, "weight": 0.2 },
+        { "symbol": "watermelon", "multiplier": 50, "weight": 0.12 },
+        { "symbol": "seven", "multiplier": 100, "weight": 0.03 }
+      ]
+    },
+    {
+      "id": "neon-fortune",
+      "name": "Neon Fortune",
+      "icon": "✦",
+      "subtitle": "Looser reels · friendlier hit rate",
+      "provider": "Velvet Room",
+      "layout": { "rows": 3, "cols": 3, "paylines": [1] },
+      "hitRate": 0.18,
+      "speedBand": "BYTE",
+      "cost": 1,
+      "payouts": [
+        { "symbol": "cherry", "multiplier": 1, "weight": 0.45 },
+        { "symbol": "lemon", "multiplier": 3, "weight": 0.28 },
+        { "symbol": "grapes", "multiplier": 8, "weight": 0.15 },
+        { "symbol": "watermelon", "multiplier": 18, "weight": 0.09 },
+        { "symbol": "seven", "multiplier": 40, "weight": 0.03 }
+      ]
+    },
+    {
+      "id": "moon-market",
+      "name": "Moon Market",
+      "icon": "◌",
+      "subtitle": "Tighter reels · bigger top end",
+      "provider": "Velvet Room",
+      "layout": { "rows": 3, "cols": 3, "paylines": [1] },
+      "hitRate": 0.03,
+      "speedBand": "ADVANCED",
+      "cost": 1,
+      "payouts": [
+        { "symbol": "cherry", "multiplier": 3, "weight": 0.3 },
+        { "symbol": "lemon", "multiplier": 8, "weight": 0.3 },
+        { "symbol": "grapes", "multiplier": 18, "weight": 0.22 },
+        { "symbol": "watermelon", "multiplier": 60, "weight": 0.12 },
+        { "symbol": "seven", "multiplier": 250, "weight": 0.06 }
+      ]
+    }
+  ],
+  "symbols": {
+    "cherry": { "emoji": "🍒", "color": "#e15d4e" },
+    "lemon": { "emoji": "🍋", "color": "#d5a94d" },
+    "grapes": { "emoji": "🍇", "color": "#c6d96a" },
+    "watermelon": { "emoji": "🍉", "color": "#7ec8a0" },
+    "seven": { "emoji": "7️⃣", "color": "#f4efe5" }
+  },
+  "providerKeys": {
+    "$comment": "Maps provider ids from providers.json to the environment variable that holds the credential. Nothing here is a secret.",
+    "softswiss": "SOFTSWISS_API_KEY",
+    "pragmatic-play": "PRAGMATIC_PLAY_API_KEY",
+    "softgamings": "SOFTGAMINGS_API_KEY",
+    "betconstruct": "BETCONSTRUCT_API_KEY",
+    "slotegrator": "SLOTEGRATOR_API_KEY",
+    "progressplay": "PROGRESSPLAY_API_KEY",
+    "gamingtec": "GAMINGTEC_API_KEY",
+    "wa-technology": "WA_TECHNOLOGY_API_KEY",
+    "hub88": "HUB88_API_KEY",
+    "slotmatrix": "SLOTMATRIX_API_KEY",
+    "kambi": "KAMBI_API_KEY",
+    "zingy-desk": "ZINGY_DESK_API_KEY",
+    "igamingcloud": "IGAMINGCLOUD_API_KEY",
+    "cxense": "CXENSE_API_KEY"
+  }
+}

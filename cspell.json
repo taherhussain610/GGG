@@ -1,0 +1,91 @@
+{
+  // cSpell config for Velvet Room. The words below are either proper nouns or domain terms absent
+  // from the base dictionary (game-studio brands, aggregator names, deliberate placeholder category
+  // labels), or ordinary English words that the en-GB base list happens to omit but that appear as
+  // literal string values or accurate prose in this codebase ('unconfigured' is a real status value
+  // in lib/payments.js; 'unclickable' and 'desync' are correct technical English).
+  //
+  // Adding them here is the correct fix -- rewriting 'Endorphina' to satisfy a spellchecker would
+  // corrupt a real brand name, and rewording a status literal would change the code's behaviour.
+  //
+  // Note: this file is JSONC (JSON with comments). It deliberately does NOT use the old "//" key
+  // trick, because a fake property is not part of the cspell schema and the JSON language server
+  // flags it as an error. Real line comments are supported and validate cleanly.
+  "language": "en-GB",
+
+  "words": [
+    "addgroup",
+    "adduser",
+    "Amusnet",
+    "Andar",
+    "Bahar",
+    "Batery",
+    "Beon",
+    "Betconstruct",
+    "cashier",
+    "Colorful",
+    "Cxense",
+    "dbaeumer",
+    "desync",
+    "desyncs",
+    "ecommerce",
+    "Endorphina",
+    "Evoplay",
+    "Evolution",
+    "Ezugi",
+    "favorites",
+    "Gamingtec",
+    "healthcheck",
+    "Hostinger",
+    "Hub88",
+    "iGaming",
+    "iGamingCloud",
+    "Jili",
+    "Kambi",
+    "Manrope",
+    "Matchday",
+    "Nolimit",
+    "nosniff",
+    "payline",
+    "paylines",
+    "paytable",
+    "paytables",
+    "mult",
+    "Pragmatic",
+    "ProgressPlay",
+    "provably",
+    "rateLimit",
+    "ritwickdey",
+    "replayable",
+    "Skydot",
+    "sparkline",
+    "sportsbook",
+    "Slotegrator",
+    "SlotMatrix",
+    "SoftGamings",
+    "Softswiss",
+    "Spribe",
+    "tmpfs",
+    "Uncrossable",
+    "unclickable",
+    "unconfigured",
+    "Velvet",
+    "volent",
+    "VoltEnt",
+    "Waitlist",
+    "Zingy",
+
+    "authorised",
+    "authorises",
+    "licence",
+    "licences",
+    "offence",
+    "recognised"
+  ],
+
+  "ignorePaths": [
+    "basic.txt",
+    "node_modules/**",
+    ".git/**"
+  ]
+}

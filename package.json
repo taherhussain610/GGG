@@ -1,0 +1,14 @@
+{
+  "name": "velvet-room-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Play-money casino UI and dependency-free local demo API",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check slot-engine.js && node --check table-games.js && node --check instant-games.js && node --check app.js && node --check lib/payments.js && node --check lib/providers.js",
+    "odds": "node slot-engine.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

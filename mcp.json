@@ -1,0 +1,42 @@
+{
+  "servers": {
+    "hostinger-hosting": {
+      "command": "npx.cmd",
+      "args": ["--package=hostinger-api-mcp@latest", "hostinger-hosting-mcp"]
+    },
+    "hostinger-domains": {
+      "command": "npx.cmd",
+      "args": ["--package=hostinger-api-mcp@latest", "hostinger-domains-mcp"]
+    },
+    "hostinger-dns": {
+      "command": "npx.cmd",
+      "args": ["--package=hostinger-api-mcp@latest", "hostinger-dns-mcp"]
+    },
+    "hostinger-billing": {
+      "command": "npx.cmd",
+      "args": ["--package=hostinger-api-mcp@latest", "hostinger-billing-mcp"]
+    },
+    "hostinger-reach": {
+      "command": "npx.cmd",
+      "args": ["--package=hostinger-api-mcp@latest", "hostinger-reach-mcp"]
+    },
+    "hostinger-vps": {
+      "command": "npx.cmd",
+      "args": ["--package=hostinger-api-mcp@latest", "hostinger-vps-mcp"]
+    },
+    "hostinger-ecommerce": {
+      "command": "npx.cmd",
+      "args": ["--package=hostinger-api-mcp@latest", "hostinger-ecommerce-mcp"]
+    },
+    "hostinger-email": {
+      "command": "npx.cmd",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.mail.hostinger.com/mcp",
+        "--header",
+        "Authorization: Bearer ${env:HOSTINGER_EMAIL_API_TOKEN}"
+      ]
+    }
+  }
+}

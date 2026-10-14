@@ -1,0 +1,1393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Velvet Room | Play for free</title>
+    <!--
+      Fonts load without delaying the first paint.
+
+      The previous `@import url(https://fonts.googleapis.com/...)` sat on the critical render path:
+      if that third-party host was slow or unreachable the whole page stalled behind it (measured
+      at 40s in one run). `media="print"` is the standard async-CSS pattern - the browser fetches
+      the stylesheet out of band, and app.js promotes it to `all` on load. That promotion lives in
+      app.js rather than an inline onload= handler because this app's CSP (script-src 'self', no
+      'unsafe-inline') refuses inline handlers, and the stylesheet would silently never apply.
+      The <noscript> link covers JS-disabled clients, and the system font stack below renders the
+      page correctly on its own either way.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      id="font-stylesheet"
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+      media="print"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+      />
+    </noscript>
+    <style>
+      :root {
+        --ink: #f4efe5;
+        --muted: #aba69b;
+        --paper: #181815;
+        --line: #36362f;
+        --gold: #d5a94d;
+        --lime: #c6d96a;
+        --red: #e15d4e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-width: 320px;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 80% 5%, #302b1c 0, transparent 30%),
+          linear-gradient(135deg, #11110f 0%, #1c1c17 52%, #10100e 100%);
+        font-family: Manrope, sans-serif;
+      }
+      header {
+        max-width: 1240px;
+        margin: auto;
+        padding: 28px 5vw 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .brand-mark {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        transform: rotate(45deg);
+      }
+      .brand-mark span {
+        transform: rotate(-45deg);
+        font-family: Georgia, serif;
+        font-size: 18px;
+      }
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      /* A compact pill per link: easier to hit than bare text, and the active state reads as a
+         selected tab rather than just a change of colour. */
+      nav a {
+        color: inherit;
+        text-decoration: none;
+        padding: 6px 11px;
+        border-radius: 3px;
+        line-height: 1;
+        transition: color 0.15s, background 0.15s;
+      }
+      nav a:hover {
+        color: var(--ink);
+        background: #25251f;
+      }
+      nav a.active {
+        color: var(--gold);
+        background: #252218;
+      }
+      .wallet {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+      }
+      .wallet strong {
+        color: var(--lime);
+        font-weight: 500;
+      }
+      /* Icon toggles: small, square, and quiet until hovered, so they never compete with the
+         balance for attention. */
+      .icon-button {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1;
+      }
+      .icon-button:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+        background: transparent;
+      }
+      .icon-button[aria-pressed="true"] {
+        color: var(--gold);
+        border-color: var(--gold);
+      }
+
+      /*
+        Light theme. Applied by setting data-theme="light" on <html> from app.js. Only the tokens
+        change, so every component restyles without a second set of rules to keep in sync.
+      */
+      html[data-theme="light"] {
+        --ink: #1d1c18;
+        --muted: #6d6a61;
+        --paper: #f6f3ec;
+        --line: #d9d4c7;
+        --gold: #a37c1f;
+        --lime: #5c7a2a;
+        --red: #b8412f;
+      }
+      html[data-theme="light"] body {
+        background: radial-gradient(circle at 80% 5%, #efe6cf 0, transparent 30%),
+          linear-gradient(135deg, #fbf9f4 0%, #f2efe6 52%, #faf8f3 100%);
+      }
+      html[data-theme="light"] .game,
+      html[data-theme="light"] .stat,
+      html[data-theme="light"] .paytable,
+      html[data-theme="light"] .account-card,
+      html[data-theme="light"] .table,
+      html[data-theme="light"] .reels,
+      html[data-theme="light"] .stats-chart {
+        background: #fffdf8;
+      }
+      html[data-theme="light"] .reel-cell,
+      html[data-theme="light"] .limits-grid input[type="number"],
+      html[data-theme="light"] .slot-controls input,
+      html[data-theme="light"] .catalog-tools input,
+      html[data-theme="light"] .catalog-tools select {
+        background: #f7f4ec;
+      }
+      html[data-theme="light"] .wallet-boundary {
+        background: #fdf4ef;
+      }
+      html[data-theme="light"] button.secondary {
+        color: var(--ink);
+      }
+      .profile {
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: var(--gold);
+      }
+      main {
+        max-width: 1240px;
+        margin: auto;
+        padding: 72px 5vw 90px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 56px;
+        align-items: end;
+        padding-bottom: 82px;
+      }
+      .eyebrow {
+        color: var(--gold);
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 700px;
+        margin: 18px 0 22px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: clamp(52px, 8vw, 102px);
+        line-height: 0.91;
+        letter-spacing: -0.04em;
+        font-weight: 600;
+      }
+      .hero p {
+        max-width: 440px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+      .hero-note {
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        line-height: 1.7;
+      }
+      .hero-note b {
+        color: var(--ink);
+        font-weight: 500;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        margin-bottom: 20px;
+      }
+      h2 {
+        margin: 0;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 30px;
+        font-weight: 600;
+      }
+      .section-head span {
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+      }
+      .category-tabs {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        margin-bottom: 18px;
+        padding-bottom: 2px;
+      }
+      .category-tab {
+        border-color: var(--line);
+        background: transparent;
+        color: var(--muted);
+        padding: 7px 12px;
+        border-radius: 3px;
+        font-size: 10.5px;
+        white-space: nowrap;
+      }
+      .category-tab:hover,
+      .category-tab.active {
+        border-color: var(--gold);
+        color: var(--gold);
+        background: #252218;
+      }
+      .catalog-tools {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+      .catalog-tools input,
+      .catalog-tools select {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        background: #11110f;
+        color: var(--ink);
+        padding: 0 12px;
+        font:
+          12px Manrope,
+          sans-serif;
+      }
+      .catalog-tools input {
+        flex: 1;
+        min-width: 0;
+      }
+      .catalog-tools select {
+        width: 180px;
+      }
+      .catalog-empty {
+        grid-column: 1/-1;
+        padding: 40px 20px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        text-align: center;
+        font:
+          12px "DM Mono",
+          monospace;
+      }
+      .games {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .game {
+        min-height: 270px;
+        padding: 26px;
+        border: 1px solid var(--line);
+        background: linear-gradient(145deg, #25251f, #191916);
+        cursor: pointer;
+        text-align: left;
+        color: var(--ink);
+        transition:
+          transform 0.2s,
+          border-color 0.2s,
+          background 0.2s;
+      }
+      .game:hover,
+      .game.active {
+        transform: translateY(-5px);
+        border-color: var(--gold);
+        background: linear-gradient(145deg, #302d20, #1d1c17);
+      }
+      .game-icon {
+        height: 115px;
+        display: grid;
+        place-items: center;
+        color: var(--gold);
+        font-family: Georgia, serif;
+        font-size: 76px;
+      }
+      .game:nth-child(2) .game-icon {
+        color: var(--red);
+      }
+      .game:nth-child(3) .game-icon {
+        color: var(--lime);
+      }
+      .game-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        border-top: 1px solid var(--line);
+        padding-top: 15px;
+      }
+      .game h3 {
+        margin: 0 0 4px;
+        font-size: 16px;
+      }
+      .game small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .play-label {
+        color: var(--gold);
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+      .console {
+        margin-top: 74px;
+        display: grid;
+        grid-template-columns: 1fr 1.35fr;
+        gap: 30px;
+        border-top: 1px solid var(--line);
+        padding-top: 28px;
+      }
+      .console-copy p {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+        max-width: 340px;
+      }
+      .table {
+        min-height: 190px;
+        border: 1px solid var(--line);
+        padding: 22px;
+        background: #11110f;
+      }
+      .table-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+      }
+      .status {
+        color: var(--lime);
+      }
+      .result {
+        min-height: 42px;
+        display: grid;
+        place-items: center;
+        color: var(--gold);
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 27px;
+        text-align: center;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 22px;
+      }
+      .view-panel {
+        display: none;
+        animation: fade-in 0.25s ease-out;
+      }
+      .view-panel.active {
+        display: block;
+      }
+      .view-panel.lobby {
+        display: block;
+      }
+      .view-panel.lobby:not(.active) {
+        display: none;
+      }
+      .slot-picker {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+      .slot-tab {
+        border-color: var(--line);
+        background: transparent;
+        color: var(--muted);
+        padding: 10px 14px;
+      }
+      .slot-tab:hover,
+      .slot-tab.active {
+        border-color: var(--gold);
+        color: var(--gold);
+        background: #252218;
+      }
+      .slot-stage {
+        display: grid;
+        grid-template-columns: 1.35fr 0.65fr;
+        gap: 26px;
+        align-items: start;
+      }
+      .reels {
+        border: 1px solid var(--line);
+        background: #11110f;
+        padding: 22px;
+      }
+      .reels-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .reel-cell {
+        aspect-ratio: 1;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        background: #191916;
+        font-size: clamp(34px, 7vw, 60px);
+        transition:
+          transform 0.18s,
+          border-color 0.18s,
+          background 0.18s;
+      }
+      .reel-cell.spin {
+        animation: reel-spin 0.28s ease-in-out;
+      }
+      .reels-grid.win .reel-cell.mid {
+        border-color: var(--lime);
+        background: #1d2318;
+        box-shadow: 0 0 0 1px var(--lime) inset;
+      }
+      .reel-cell.mid {
+        outline: 1px dashed #3d3d33;
+        outline-offset: -7px;
+      }
+      @keyframes reel-spin {
+        0% {
+          transform: translateY(-16%);
+          opacity: 0.25;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .slot-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 22px;
+      }
+      .slot-controls label {
+        color: var(--muted);
+        font:
+          10px "DM Mono",
+          monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .slot-controls input {
+        width: 96px;
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        background: #11110f;
+        color: var(--ink);
+        padding: 0 10px;
+        font:
+          13px "DM Mono",
+          monospace;
+      }
+      .slot-controls input:focus {
+        outline: none;
+        border-color: var(--gold);
+      }
+      .slot-message {
+        min-height: 52px;
+        margin-top: 20px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        border: 1px solid var(--line);
+        padding: 14px;
+        color: var(--gold);
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 20px;
+        line-height: 1.35;
+      }
+      .slot-message.win {
+        color: var(--lime);
+      }
+      .slot-message.lose {
+        color: var(--muted);
+      }
+      .slot-side {
+        display: grid;
+        gap: 12px;
+      }
+      .paytable {
+        border: 1px solid var(--line);
+        background: #191916;
+        padding: 20px;
+      }
+      .paytable h3 {
+        margin: 0 0 14px;
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .paytable-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 0;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+      }
+      .paytable-row:first-of-type {
+        border-top: 0;
+      }
+      .paytable-row .sym {
+        font-size: 22px;
+      }
+      .paytable-row .mult {
+        color: var(--lime);
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+      }
+      .slot-meta {
+        color: var(--muted);
+        font:
+          11px "DM Mono",
+          monospace;
+        line-height: 1.7;
+      }
+      .slot-meta b {
+        color: var(--ink);
+        font-weight: 500;
+      }
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .panel-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+      .panel-heading p {
+        color: var(--muted);
+        font-size: 12px;
+        margin: 8px 0 0;
+      }
+      .panel-heading .eyebrow {
+        margin-bottom: 8px;
+      }
+      .table-list {
+        border-top: 1px solid var(--line);
+      }
+      .table-row {
+        display: grid;
+        grid-template-columns: 1.5fr 0.8fr 0.7fr auto;
+        align-items: center;
+        gap: 18px;
+        padding: 18px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .table-row strong {
+        font-size: 14px;
+      }
+      .table-row small {
+        color: var(--muted);
+        display: block;
+        margin-top: 5px;
+        font-size: 11px;
+      }
+      .table-row span {
+        color: var(--muted);
+        font:
+          11px "DM Mono",
+          monospace;
+      }
+      .table-row .open {
+        color: var(--lime);
+      }
+      .table-row .full {
+        color: var(--gold);
+      }
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 12px;
+      }
+      .data-table th {
+        color: var(--muted);
+        font:
+          10px "DM Mono",
+          monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 0 12px 14px 0;
+      }
+      .data-table td {
+        padding: 16px 12px 16px 0;
+        border-top: 1px solid var(--line);
+      }
+      .data-table td:last-child {
+        color: var(--lime);
+        font-family: "DM Mono", monospace;
+      }
+      .wallet-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 40px;
+      }
+      .wallet-boundary {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 40px;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-left: 2px solid var(--red);
+        background: #1b1713;
+      }
+      .wallet-boundary h3 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+      .wallet-boundary p {
+        margin: 0;
+        max-width: 620px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      .wallet-flag {
+        flex: none;
+        color: var(--red);
+        font:
+          10px "DM Mono",
+          monospace;
+        letter-spacing: 0.12em;
+        border: 1px solid var(--line);
+        padding: 7px 10px;
+      }
+      .stat {
+        border: 1px solid var(--line);
+        padding: 22px;
+        background: #191916;
+      }
+      .stat label {
+        display: block;
+        color: var(--muted);
+        font:
+          10px "DM Mono",
+          monospace;
+        text-transform: uppercase;
+        margin-bottom: 15px;
+      }
+      .stat strong {
+        color: var(--lime);
+        font:
+          22px "DM Mono",
+          monospace;
+        font-weight: 500;
+      }
+      .account-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .limits-card {
+        margin-top: 12px;
+      }
+      .limits-grid {
+        display: grid;
+        grid-template-columns: minmax(150px, 220px) 1fr;
+        gap: 10px 18px;
+        align-items: center;
+        margin: 4px 0 18px;
+      }
+      .limits-grid > label:first-child,
+      .limits-grid label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .limits-grid input[type="number"] {
+        width: 100%;
+        max-width: 220px;
+        min-height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        background: #11110f;
+        color: var(--ink);
+        padding: 0 10px;
+        font: 12px "DM Mono", monospace;
+      }
+      .limits-grid input[type="number"]:focus {
+        outline: none;
+        border-color: var(--gold);
+      }
+      .switch {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .switch input {
+        accent-color: var(--gold);
+        width: 15px;
+        height: 15px;
+      }
+      .limits-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .limits-status {
+        color: var(--lime);
+        font: 11px "DM Mono", monospace;
+      }
+      .limits-status.blocked {
+        color: var(--red);
+      }
+      .stats-heading {
+        margin-top: 44px;
+      }
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .stats-chart {
+        border: 1px solid var(--line);
+        background: #11110f;
+        padding: 18px;
+      }
+      .stats-chart-head {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font: 11px "DM Mono", monospace;
+        margin-bottom: 14px;
+      }
+      #stats-spark {
+        display: block;
+        width: 100%;
+        height: 120px;
+      }
+      .account-card {
+        border: 1px solid var(--line);
+        padding: 24px;
+      }
+      .account-card h3 {
+        margin: 0 0 16px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 22px;
+      }
+      .account-card p {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      button {
+        border: 1px solid var(--gold);
+        background: var(--gold);
+        color: #17140d;
+        padding: 9px 14px;
+        border-radius: 3px;
+        font:
+          700 10.5px Manrope,
+          sans-serif;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      }
+      button:hover {
+        background: #ebc76c;
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+        transform: none;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--ink);
+        border-color: var(--line);
+      }
+      button.secondary:hover {
+        border-color: var(--gold);
+        background: transparent;
+        color: var(--gold);
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        max-width: 1240px;
+        margin: auto;
+        padding: 20px 5vw;
+        display: flex;
+        justify-content: space-between;
+        color: #77756d;
+        font:
+          10px "DM Mono",
+          monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      @media (max-width: 720px) {
+        .limits-grid {
+          grid-template-columns: 1fr;
+        }
+        .stats-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 720px) {
+        header {
+          padding-top: 20px;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+        nav {
+          display: flex;
+          order: 3;
+          width: 100%;
+          gap: 18px;
+          overflow-x: auto;
+          padding-top: 4px;
+        }
+        nav a {
+          white-space: nowrap;
+        }
+        .wallet {
+          margin-left: auto;
+          margin-right: 12px;
+        }
+        main {
+          padding-top: 50px;
+        }
+        .hero,
+        .console,
+        .slot-stage {
+          grid-template-columns: 1fr;
+          gap: 30px;
+        }
+        .hero {
+          padding-bottom: 58px;
+        }
+        .games {
+          grid-template-columns: 1fr;
+        }
+        .game {
+          min-height: 210px;
+          display: grid;
+          grid-template-columns: 120px 1fr;
+          gap: 18px;
+          align-items: center;
+        }
+        .game-icon {
+          height: auto;
+        }
+        .game-meta {
+          padding-top: 0;
+          border-top: 0;
+          display: block;
+        }
+        .play-label {
+          display: block;
+          margin-top: 14px;
+        }
+        .table-row {
+          grid-template-columns: 1fr auto;
+        }
+        .table-row span {
+          display: none;
+        }
+        .wallet-grid,
+        .account-grid {
+          grid-template-columns: 1fr;
+        }
+        .data-table {
+          min-width: 520px;
+        }
+        .table-scroll {
+          overflow-x: auto;
+        }
+        footer {
+          display: block;
+          line-height: 2;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <div class="brand-mark"><span>V</span></div>
+        Velvet Room
+      </div>
+      <nav>
+        <a href="#lobby" data-view-link="lobby" class="active">Casino</a
+        ><a href="#tables" data-view-link="tables">Sport</a
+        ><a href="#wallet" data-view-link="wallet">Results</a
+        ><a href="#account" data-view-link="account">Media</a
+        ><a href="#account" data-view-link="account">Apps</a>
+      </nav>
+      <div class="wallet">
+        <button
+          class="icon-button"
+          id="sound-toggle"
+          type="button"
+          aria-pressed="false"
+          aria-label="Toggle sound effects"
+          title="Sound effects"
+        >
+          ♪
+        </button>
+        <button
+          class="icon-button"
+          id="theme-toggle"
+          type="button"
+          aria-pressed="false"
+          aria-label="Toggle light and dark theme"
+          title="Light / dark theme"
+        >
+          ◐
+        </button>
+        <strong id="balance">1,000.00</strong> VR
+        <div class="profile">◆</div>
+      </div>
+    </header>
+    <main>
+      <section class="view-panel lobby active">
+        <section class="hero" id="about">
+          <div>
+            <div class="eyebrow">Private lounge / 001</div>
+            <h1>Play the<br />long game.</h1>
+            <p>
+              A quieter kind of casino. Discover classic tables, clean odds, and
+              a little room for luck. This is a play-money demo, built for the
+              experience.
+            </p>
+          </div>
+          <div class="hero-note">
+            <b>Tonight's house note</b><br />Three games are open at the
+            table.<br />Demo credits only. No deposits or withdrawals.
+          </div>
+        </section>
+        <section id="games">
+          <div class="section-head">
+            <h2>Explore the floor</h2>
+            <span id="catalog-count">03 available now</span>
+          </div>
+          <div class="category-tabs" role="tablist" aria-label="Casino options">
+            <button
+              class="category-tab active"
+              data-category="casino"
+              role="tab"
+            >
+              Lobby</button
+            ><button class="category-tab" data-category="favorites" role="tab">
+              Faves</button
+            ><button class="category-tab" data-category="top" role="tab">
+              Top</button
+            ><button class="category-tab" data-category="new" role="tab">
+              New</button
+            ><button class="category-tab" data-category="featured" role="tab">
+              Recommended</button
+            ><button
+              class="category-tab"
+              data-category="tournaments"
+              role="tab"
+            >
+              Tournaments</button
+            ><button class="category-tab" data-category="instant" role="tab">
+              Instant</button
+            ><button class="category-tab" data-category="live" role="tab">
+              Live casino</button
+            ><button class="category-tab" data-category="slots" role="tab">
+              Slots</button
+            ><button class="category-tab" data-category="crash" role="tab">
+              Crash</button
+            ><button class="category-tab" data-category="batery" role="tab">
+              Batery Games</button
+            ><button class="category-tab" data-category="volent" role="tab">
+              VoltEnt Hits</button
+            ><button class="category-tab" data-category="buy-bonus" role="tab">
+              Buy Bonus</button
+            ><button class="category-tab" data-category="roulette" role="tab">
+              Roulette</button
+            ><button class="category-tab" data-category="mines" role="tab">
+              Mines</button
+            ><button class="category-tab" data-category="promo" role="tab">
+              Promo
+            </button>
+          </div>
+          <div class="catalog-tools">
+            <input
+              id="game-search"
+              type="search"
+              placeholder="Search games"
+              aria-label="Search games"
+            /><select id="provider-filter" aria-label="Filter by provider">
+              <option value="all">All providers</option>
+              <option value="Velvet Room">Velvet Room</option>
+              <option value="Evolution">Evolution</option>
+              <option value="Spribe">Spribe</option>
+              <option value="Jili Games">Jili Games</option>
+              <option value="Endorphina">Endorphina</option>
+              <option value="Wicked Games">Wicked Games</option>
+            </select>
+          </div>
+          <div class="games">
+            <button class="game active" data-game="Blackjack">
+              <div class="game-icon">♠</div>
+              <div class="game-meta">
+                <div>
+                  <h3>Blackjack</h3>
+                  <small>Beat the dealer to 21</small>
+                </div>
+                <span class="play-label">Open table ↗</span>
+              </div>
+            </button>
+            <button class="game" data-game="Roulette">
+              <div class="game-icon">◎</div>
+              <div class="game-meta">
+                <div>
+                  <h3>Roulette</h3>
+                  <small>Make a call, trust the wheel</small>
+                </div>
+                <span class="play-label">Open table ↗</span>
+              </div>
+            </button>
+            <button class="game" data-game="Lucky 7">
+              <div class="game-icon">7</div>
+              <div class="game-meta">
+                <div>
+                  <h3>Lucky 7</h3>
+                  <small>Simple game, sharp feeling</small>
+                </div>
+                <span class="play-label">Open table ↗</span>
+              </div>
+            </button>
+          </div>
+        </section>
+        <section class="console" id="table">
+          <div class="console-copy">
+            <div class="eyebrow">Your next hand</div>
+            <h2 id="table-title">Blackjack</h2>
+            <p id="table-description">
+              The cards are warm. Place a demo wager and see where the hand
+              takes you.
+            </p>
+          </div>
+          <div class="table">
+            <div class="table-top">
+              <span>VELVET ROOM / PLAY MONEY</span
+              ><span class="status" id="status">TABLE OPEN</span>
+            </div>
+            <div class="result" id="result">Ready when you are.</div>
+            <div class="actions">
+              <button id="play">Deal hand · 25 VR</button
+              ><button class="secondary" id="reset">Reset balance</button>
+            </div>
+          </div>
+        </section>
+        <section class="console" id="slots">
+          <div class="console-copy">
+            <div class="eyebrow">Dedicated slots / 003</div>
+            <h2>Slot machines</h2>
+            <p>
+              Three dedicated reel games, each with its own paytable and speed
+              band. Every spin is settled server-side against the house odds and
+              returns a fairness receipt.
+            </p>
+          </div>
+          <div class="slot-stage">
+            <div>
+              <div
+                class="slot-picker"
+                id="slot-picker"
+                role="tablist"
+                aria-label="Slot machines"
+              ></div>
+              <div class="reels">
+                <div
+                  class="reels-grid"
+                  id="reels-grid"
+                  aria-label="Reel grid"
+                ></div>
+                <div class="slot-controls">
+                  <label for="slot-bet">Bet (VR)</label
+                  ><input
+                    id="slot-bet"
+                    type="number"
+                    min="1"
+                    max="250"
+                    step="1"
+                    value="1"
+                  /><button id="slot-spin">Spin reels</button
+                  ><button class="secondary" id="slot-reset">
+                    Reset balance
+                  </button>
+                </div>
+                <div class="slot-message" id="slot-message">
+                  Choose a machine and press spin.
+                </div>
+              </div>
+            </div>
+            <aside class="slot-side">
+              <div class="paytable" id="slot-paytable"><h3>Paytable</h3></div>
+              <div class="paytable">
+                <h3>This spin</h3>
+                <div class="slot-meta" id="slot-meta">
+                  No spin yet.<br />Play-money credits only.
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </section>
+      <section class="view-panel" data-view="tables">
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">Live floor / 004</div>
+            <h2>Tables open now</h2>
+            <p>Choose a room and continue with demo credits.</p>
+          </div>
+          <button class="secondary" data-go="lobby">Browse games</button>
+        </div>
+        <div class="table-list">
+          <div class="table-row">
+            <div>
+              <strong>Midnight Blackjack</strong
+              ><small>Classic rules / 6 seats</small>
+            </div>
+            <span>25 VR min</span><span class="open">OPEN</span
+            ><button data-table-game="Blackjack">Join table</button>
+          </div>
+          <div class="table-row">
+            <div>
+              <strong>Roulette No. 4</strong
+              ><small>European wheel / live host</small>
+            </div>
+            <span>10 VR min</span><span class="open">OPEN</span
+            ><button data-table-game="Roulette">Join table</button>
+          </div>
+          <div class="table-row">
+            <div>
+              <strong>The Green Room</strong><small>Lucky 7 / quick play</small>
+            </div>
+            <span>5 VR min</span><span class="open">OPEN</span
+            ><button data-table-game="Lucky 7">Join table</button>
+          </div>
+          <div class="table-row">
+            <div>
+              <strong>High Limit Salon</strong
+              ><small>Blackjack / invitation only</small>
+            </div>
+            <span>100 VR min</span><span class="full">FULL</span
+            ><button class="secondary" disabled>Waitlist</button>
+          </div>
+        </div>
+      </section>
+      <section class="view-panel" data-view="wallet">
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">Your account / 001</div>
+            <h2>Wallet</h2>
+            <p>
+              Play-money credits only. This build cannot accept a deposit or pay
+              one out.
+            </p>
+          </div>
+          <button id="wallet-reset" class="secondary">Restore credits</button>
+        </div>
+        <div class="wallet-grid">
+          <div class="stat">
+            <label>Available balance</label
+            ><strong id="wallet-balance">1,000.00 VR</strong>
+          </div>
+          <div class="stat">
+            <label>Played today</label
+            ><strong id="played-today">0.00 VR</strong>
+          </div>
+          <div class="stat">
+            <label>Session result</label
+            ><strong id="session-result">+0.00 VR</strong>
+          </div>
+        </div>
+        <div class="wallet-boundary" id="wallet-boundary" role="note">
+          <div>
+            <h3>Deposits and withdrawals are not available</h3>
+            <p id="wallet-boundary-reason">
+              Credits on this page are a local demo balance with no cash value.
+              Real-money play requires a gambling licence, age and identity
+              verification, and payments handled by a provider approved for
+              iGaming. That capability is off in this build.
+            </p>
+          </div>
+          <span class="wallet-flag" id="wallet-flag">PAYMENTS OFF</span>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Activity</th>
+                <th>Table</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody id="activity-body">
+              <tr>
+                <td>Now</td>
+                <td>Session opened</td>
+                <td>Velvet Room</td>
+                <td>+1,000.00 VR</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="view-panel" data-view="account">
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">Member profile</div>
+            <h2>Account</h2>
+            <p>Your preferences and responsible-play controls.</p>
+          </div>
+          <button id="sign-out" class="secondary">Sign out</button>
+        </div>
+        <div class="account-grid">
+          <div class="account-card">
+            <h3>Guest member</h3>
+            <p>
+              Profile access is simulated for this local prototype. A production
+              account would connect to your authentication provider and persist
+              preferences server-side.
+            </p>
+            <button class="secondary" id="edit-profile">Edit profile</button>
+          </div>
+          <div class="account-card">
+            <h3>Fair play</h3>
+            <p>
+              Every slot round in this prototype is settled on the server
+              against house-configured odds and returns a fairness receipt;
+              play-money credits only. Real-money gaming requires licensing, age
+              checks, identity verification, secure payment processing, and
+              independent RNG auditing.
+            </p>
+            <button class="secondary" data-go="tables">Review tables</button>
+          </div>
+        </div>
+
+        <div class="account-card limits-card">
+          <h3>Responsible play</h3>
+          <p>
+            Set your own limits and the server will hold you to them: a round
+            that would breach them is refused before the stake leaves your
+            balance. A limit of 0 means no limit. These are play-money credits,
+            but the enforcement point is the one that would matter with cash.
+          </p>
+          <div class="limits-grid">
+            <label for="limit-loss">Session loss limit (VR)</label>
+            <input id="limit-loss" type="number" min="0" step="10" value="0" />
+            <label for="limit-stake">Session stake limit (VR)</label>
+            <input id="limit-stake" type="number" min="0" step="10" value="0" />
+            <label for="limit-minutes">Session time limit (minutes)</label>
+            <input id="limit-minutes" type="number" min="0" step="5" value="0" />
+            <label for="limit-exclude">Self-exclusion</label>
+            <label class="switch">
+              <input id="limit-exclude" type="checkbox" />
+              <span>Pause play on this session</span>
+            </label>
+          </div>
+          <div class="limits-actions">
+            <button id="limits-save">Save limits</button>
+            <span class="limits-status" id="limits-status"></span>
+          </div>
+        </div>
+
+        <div class="panel-heading stats-heading">
+          <div>
+            <div class="eyebrow">Session report</div>
+            <h2>Results</h2>
+            <p>
+              Every figure below is computed from the rounds this session
+              actually settled, not from the configured odds.
+            </p>
+          </div>
+        </div>
+        <div class="stats-row" id="stats-row">
+          <div class="stat"><label>Rounds played</label><strong id="stat-spins">0</strong></div>
+          <div class="stat"><label>Total staked</label><strong id="stat-staked">0.00 VR</strong></div>
+          <div class="stat"><label>Total returned</label><strong id="stat-returned">0.00 VR</strong></div>
+          <div class="stat"><label>Observed return</label><strong id="stat-rtp">n/a</strong></div>
+        </div>
+        <div class="stats-chart">
+          <div class="stats-chart-head">
+            <span>Bankroll across the session</span>
+            <span id="stats-chart-note">No rounds yet</span>
+          </div>
+          <svg id="stats-spark" viewBox="0 0 600 120" preserveAspectRatio="none" role="img" aria-label="Bankroll over time">
+            <polyline id="stats-spark-line" points="" fill="none" stroke="var(--gold)" stroke-width="2" />
+          </svg>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <span>18+ concept interface</span
+      ><span>For demonstration only · No real-money play</span>
+    </footer>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

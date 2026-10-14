@@ -1,0 +1,19 @@
+{
+  "mode": "demo",
+  "providers": [
+    { "id": "softswiss", "name": "SOFTSWISS", "service": "Game aggregation, payments and compliance", "env": "SOFTSWISS_API_KEY", "status": "not_configured" },
+    { "id": "pragmatic-play", "name": "Pragmatic Play", "service": "Turnkey casino and game content", "env": "PRAGMATIC_PLAY_API_KEY", "status": "not_configured" },
+    { "id": "softgamings", "name": "SoftGamings", "service": "Game aggregation and backend platform", "env": "SOFTGAMINGS_API_KEY", "status": "not_configured" },
+    { "id": "betconstruct", "name": "BetConstruct", "service": "End-to-end platform and analytics", "env": "BETCONSTRUCT_API_KEY", "status": "not_configured" },
+    { "id": "slotegrator", "name": "Slotegrator", "service": "Casino game library integration", "env": "SLOTEGRATOR_API_KEY", "status": "not_configured" },
+    { "id": "progressplay", "name": "ProgressPlay", "service": "Flexible market-focused platform", "env": "PROGRESSPLAY_API_KEY", "status": "not_configured" },
+    { "id": "gamingtec", "name": "Gamingtec", "service": "Customizable casino platform", "env": "GAMINGTEC_API_KEY", "status": "not_configured" },
+    { "id": "wa-technology", "name": "WA Technology", "service": "Emerging-market platform services", "env": "WA_TECHNOLOGY_API_KEY", "status": "not_configured" },
+    { "id": "hub88", "name": "Hub88", "category": "game-aggregator", "service": "7,000+ games from 100+ studios", "env": "HUB88_API_KEY", "status": "not_configured" },
+    { "id": "slotmatrix", "name": "SlotMatrix", "category": "game-aggregator", "service": "Unified game integration API", "env": "SLOTMATRIX_API_KEY", "status": "not_configured" },
+    { "id": "kambi", "name": "Kambi", "category": "sportsbook", "service": "Sportsbook and iGaming integration", "env": "KAMBI_API_KEY", "status": "not_configured" },
+    { "id": "zingy-desk", "name": "Zingy Desk", "category": "back-office", "service": "Player management and reporting", "env": "ZINGY_DESK_API_KEY", "status": "not_configured" },
+    { "id": "igamingcloud", "name": "iGamingCloud", "category": "back-office", "service": "Complete management platform", "env": "IGAMINGCLOUD_API_KEY", "status": "not_configured" },
+    { "id": "cxense", "name": "Cxense", "category": "analytics", "service": "Player analytics and personalization", "env": "CXENSE_API_KEY", "status": "not_configured" }
+  ]
+}
